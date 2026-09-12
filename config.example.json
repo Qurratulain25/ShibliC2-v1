@@ -1,0 +1,24 @@
+{
+  "system_name": "SHIBLI C2",
+  "site_id": "edge-node-01",
+  "site_label": "Edge Node",
+  "phase": 1,
+  "streams": {
+    "day_camera": "",
+    "thermal": "",
+    "map": ""
+  },
+  "ptz_systems": [
+    { "id": "ptz-1", "label": "PTZ System 1", "default": true },
+    { "id": "ptz-2", "label": "PTZ System 2", "default": false }
+  ],
+  "recording": { "retention_days": 30, "mode": "both" },
+  "devices": {
+    "ptz": { "enabled": true, "adapter": "shibli_controls" },
+    "lrf": { "enabled": true, "adapter": "shibli_controls" },
+    "illumination": { "enabled": true, "adapter": "shibli_controls" }
+  },
+  "integrations": {
+    "shibli_controls_url": "http://127.0.0.1:8001"
+  }
+}

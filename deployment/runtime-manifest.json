@@ -1,0 +1,37 @@
+{
+  "product": "SHIBLI C2",
+  "version": "1.0",
+  "package_version": "1.0.0",
+  "build_baseline": "Ubuntu 22.04 LTS x86-64",
+  "build_os": "Ubuntu 22.04 LTS",
+  "architecture": "amd64",
+  "glibc_baseline": "ldd (Ubuntu GLIBC 2.35-0ubuntu3.14) 2.35",
+  "python_runtime": "3.10.12",
+  "pyinstaller": "6.11.1",
+  "desktop_runtime": "5.4",
+  "gui_backend": "pywebview GTK + WebKit2GTK 4.0 (Ubuntu 22.04)",
+  "sqlcipher": "present",
+  "go2rtc": "go2rtc version 1.9.14 (b5948cf) linux/amd64",
+  "go2rtc_sha256": "32d616af226bd731678ffde328b94cfb94e30339bfefc469cfb76323144615a6",
+  "ffmpeg": "ffmpeg version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2000-2021 the FFmpeg developers",
+  "ffmpeg_sha256": "36d94a605d612e4090d1b8aec889d0c0801c6eafb1593c90f5c0dfd2e2966a45",
+  "controls": "deployment/runtime/controls (server.py)",
+  "controls_requirements": "fastapi==0.104.1 uvicorn==0.24.0 python-dotenv==1.0.0 PyJWT==2.8.0 onvif-zeep==0.2.12 zeep==4.3.0 pyserial==3.5 legacy-cgi>=2.6",
+  "application_requirements": {
+    "fastapi": "fastapi==0.115.6",
+    "uvicorn[standard]": "uvicorn[standard]==0.34.0",
+    "pydantic": "pydantic==2.10.4",
+    "python-dotenv": "python-dotenv==1.0.1",
+    "httpx": "httpx==0.28.1",
+    "PyJWT": "PyJWT==2.8.0",
+    "bcrypt": "bcrypt==4.2.1",
+    "sqlcipher3": "sqlcipher3>=0.5.4",
+    "pyinstaller": "pyinstaller==6.11.1",
+    "pywebview": "pywebview==5.4"
+  },
+  "builder_baseline_file": "BUILD_OS=Ubuntu 22.04 LTS\nBUILD_ARCH=amd64\nGLIBC=ldd (Ubuntu GLIBC 2.35-0ubuntu3.14) 2.35\nPYTHON=Python 3.10.12\nFFMPEG=ffmpeg version 4.4.2-0ubuntu0.22.04.1 Copyright (c) 2000-2021 the FFmpeg developers\n",
+  "notes": [
+    "Frozen inside ubuntu:22.04. Do not use Ubuntu 25.10 native libraries.",
+    "glibc is not bundled. Client OS must provide Ubuntu 22.04+ glibc."
+  ]
+}

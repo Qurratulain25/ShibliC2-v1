@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SHIBLI C2
+Comment=SHIBLI C2 v1.0 Command & Control
+Exec=/opt/shiblic2/bin/shibli-c2
+Icon=/opt/shiblic2/share/icons/shibli.png
+Terminal=false
+Categories=Utility;
+StartupWMClass=SHIBLI C2

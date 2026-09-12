@@ -1,0 +1,17 @@
+# go2rtc — RTSP to WebRTC bridge for SHIBLI C2
+# The installer copies this file to the writable config directory only when
+# no client configuration exists. Upgrades must not overwrite an existing file.
+# Live stream URLs are written from camera records at runtime.
+# Do not put real passwords or client IPs in this example.
+
+api:
+  listen: ":1984"
+  origin: "*"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+
+streams: {}

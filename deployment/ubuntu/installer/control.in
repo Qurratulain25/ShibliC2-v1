@@ -1,0 +1,11 @@
+Package: shibli-c2
+Version: 1.0.0
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libc6
+Maintainer: SHIBLI <support@localhost>
+Description: SHIBLI C2 v1.0 Command & Control
+ Offline desktop console. The package contains its own runtime, go2rtc,
+ FFmpeg, hardware-control service, and desktop window libraries.
+ No Python, pip, Node, or extra apt packages are required after install.

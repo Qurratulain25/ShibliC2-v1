@@ -1,0 +1,10 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+python-dotenv==1.0.1
+httpx==0.28.1
+PyJWT==2.8.0
+bcrypt==4.2.1
+sqlcipher3>=0.5.4
+pyinstaller==6.11.1
+pywebview==5.4

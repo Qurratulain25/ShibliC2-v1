@@ -1,0 +1,27 @@
+{
+  "product": "SHIBLI C2",
+  "version": "1.0",
+  "go2rtc": {
+    "version": "1.9.14",
+    "commit": "b5948cf",
+    "linux_amd64_url": "https://github.com/AlexxIT/go2rtc/releases/download/v1.9.14/go2rtc_linux_amd64",
+    "linux_amd64_sha256": "32d616af226bd731678ffde328b94cfb94e30339bfefc469cfb76323144615a6",
+    "win64_url": "https://github.com/AlexxIT/go2rtc/releases/download/v1.9.14/go2rtc_win64.zip",
+    "win64_sha256": ""
+  },
+  "ffmpeg": {
+    "linux_baseline": "ubuntu-22.04",
+    "linux_package": "ffmpeg 4.4.2-0ubuntu0.22.04.1",
+    "linux_sha256": "36d94a605d612e4090d1b8aec889d0c0801c6eafb1593c90f5c0dfd2e2966a45",
+    "linux_2510_package": "ffmpeg 7.1.1-1ubuntu4.2",
+    "linux_2510_sha256": "437c72289719f4145f6677aa0bbd454a151cf482097549270761c5d0a8b04512",
+    "windows_url": "https://github.com/GyanD/codexffmpeg/releases/download/7.1.1/ffmpeg-7.1.1-essentials_build.zip",
+    "windows_version": "7.1.1-essentials_build",
+    "windows_sha256": ""
+  },
+  "notes": [
+    "linux_amd64_sha256 matches the GitHub release asset and the vendored binary on this build host.",
+    "Production Linux FFmpeg is the Ubuntu 22.04 package, hashed from the 22.04 builder.",
+    "Windows sidecar hashes are recorded on the Windows build host after a verified download."
+  ]
+}

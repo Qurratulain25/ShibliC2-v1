@@ -1,0 +1,17 @@
+[Unit]
+Description=SHIBLI C2 Command & Control
+After=network.target
+
+[Service]
+Type=simple
+User=shibli
+WorkingDirectory=/opt/shibli-c2
+Environment=VMS_HOST=0.0.0.0
+Environment=VMS_PORT=8080
+Environment=SHIBLI_NO_BROWSER=1
+ExecStart=/opt/shibli-c2/dist/ShibliC2
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,4 @@
+*.exe
+*.deb
+*.msi
+.DS_Store

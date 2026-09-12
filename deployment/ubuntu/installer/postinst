@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+mkdir -p \
+  /var/lib/shiblic2/config \
+  /var/lib/shiblic2/data \
+  /var/lib/shiblic2/logs \
+  /var/lib/shiblic2/recordings \
+  /var/lib/shiblic2/snapshots \
+  /var/lib/shiblic2/exports \
+  /var/lib/shiblic2/backups
+
+if [ ! -f /var/lib/shiblic2/config/go2rtc.yaml ] && [ -f /opt/shiblic2/go2rtc.example.yaml ]; then
+  cp /opt/shiblic2/go2rtc.example.yaml /var/lib/shiblic2/config/go2rtc.yaml
+fi
+
+if [ ! -f /var/lib/shiblic2/data/.env ] && [ -f /opt/shiblic2/.env.example ]; then
+  cp /opt/shiblic2/.env.example /var/lib/shiblic2/data/.env
+fi
+
+if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+  chown -R "$SUDO_USER:$SUDO_USER" /var/lib/shiblic2 || true
+fi
+
+chmod 755 /opt/shiblic2/bin/shibli-c2 || true
+chmod 755 /opt/shiblic2/ShibliC2 || true
+update-desktop-database >/dev/null 2>&1 || true
+exit 0

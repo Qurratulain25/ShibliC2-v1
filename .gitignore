@@ -1,0 +1,141 @@
+.venv/
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec.bak
+.env
+*.log
+.DS_Store
+Thumbs.db
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Node
+node_modules/
+build/
+dist/
+npm-debug.log*
+
+# Databases
+data/*.db
+data/config.json
+data/backups/
+data/snapshots/
+data/exports/
+*.db
+*.db.plain
+*.db.migrating
+*.sqlite
+*.sqlite3
+archived_databases/
+data/*.verify_backup*
+data/*.safe
+data/recovery-snapshots/
+*_backup_*.db
+
+# Live go2rtc config is generated from the camera DB and may contain RTSP secrets
+go2rtc.yaml
+go2rtc.local.yaml
+data/go2rtc.yaml
+
+# Recovery / machine-specific env (may contain secrets)
+data/recovery_hold/
+
+# Build-time sidecar binaries and local path markers
+deployment/runtime/linux/
+deployment/runtime/windows/
+deployment/runtime/.controls-src-path
+deployment/ubuntu/build/
+
+# Logs
+*.log
+logs/
+data/logs/
+data/recordings/
+
+# Keys / certs
+*.key
+*.pem
+
+# Release binaries (keep checksums)
+release/**/*.exe
+release/**/*.deb
+release/**/*.msi
+
+# Temporary files
+tmp/
+temp/
+*.bak
+*.backup
+*.spec.bak
+*-copy.*
+*-old.*
+
+# IDE
+.vscode/
+.idea/
+.cursor/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PyInstaller/generated build output
+build/
+dist/
+*.spec.bak
+
+# Broken/foreign virtual environments
+.venv.broken*/
+.venv/
+venv/
+
+# Ubuntu package build staging
+deployment/ubuntu/build/
+
+# Final generated release artifacts
+release/
+*.deb
+*.exe
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Runtime/private data
+.env
+.env.*
+!.env.example
+data/*.db
+data/*.db.*
+data/logs/
+data/backups/
+data/snapshots/
+data/panorama/
+recordings/
+snapshots/
+logs/
+backups/
+
+# Live stream configuration
+go2rtc.yaml
+!go2rtc.example.yaml
+!go2rtc.yaml.example
+
+# Editor metadata
+.cursor/
+.idea/
+.vscode/
+
+# Local hardware-controls source location
+deployment/runtime/.controls-src-path

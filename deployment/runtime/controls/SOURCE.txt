@@ -1,0 +1,3 @@
+SHIBLI-controls packaged from approved runtime input.
+Entry: server.py
+Do not include venv, .env, or live data.

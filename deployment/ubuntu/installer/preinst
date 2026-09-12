@@ -1,0 +1,7 @@
+#!/bin/sh
+set -e
+# Remove a previous development-style install if present.
+if [ -d /opt/shiblic2/.venv ]; then
+  rm -rf /opt/shiblic2/.venv
+fi
+exit 0

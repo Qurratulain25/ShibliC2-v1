@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHIBLI C2</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem("shibli_theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="icon" href="/static/branding/logo.png" type="image/png" />
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <style>
+    /* Fallback if stylesheet path fails — keeps login usable */
+    .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #06090c; color: #e8eef4; font-family: "Segoe UI", system-ui, sans-serif; }
+    .login-card { width: min(400px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 32px 28px; border-radius: 14px; border: 1px solid rgba(148,163,184,.2); background: #111820; }
+    .login-card label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #8b9aab; }
+    .login-card input { min-height: 40px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(148,163,184,.2); background: #0a1016; color: #e8eef4; }
+    .login-error { color: #ff5c5c; font-size: 13px; min-height: 18px; margin: 0; }
+    button.full { width: 100%; min-height: 42px; border-radius: 8px; border: 1px solid rgba(59,158,255,.45); background: rgba(59,158,255,.15); color: #d9ecff; font-weight: 700; cursor: pointer; }
+    .brand-logo { width: 64px; height: 64px; margin: 0 auto 4px; object-fit: contain; display: block; }
+    .mode-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid rgba(148,163,184,.28); border-radius: 10px; overflow: hidden; }
+    .mode-toggle button { min-height: 40px; border: 0; background: transparent; color: #8b9aab; font-weight: 700; cursor: pointer; }
+    .mode-toggle button.active { background: rgba(59,158,255,.22); color: #e8eef4; }
+  </style>
+</head>
+<body>
+  <script>
+    if (location.protocol === "file:") {
+      document.write(
+        '<div style="padding:40px;font-family:Segoe UI,sans-serif;max-width:520px;margin:40px auto;background:#111820;color:#e8eef4;border-radius:12px">' +
+        '<h2>Open SHIBLI C2 via the server</h2>' +
+        '<p>Do not open index.html directly. Start the app then open:</p>' +
+        '<p><strong><a href="http://127.0.0.1:8080" style="color:#3b9eff">http://127.0.0.1:8080</a></strong></p>' +
+        '<pre style="background:#0a1016;padding:12px;border-radius:8px">Start SHIBLI C2, then open http://127.0.0.1:8080</pre></div>'
+      );
+      throw new Error("file protocol");
+    }
+  </script>
+  <!-- LOGIN -->
+  <div id="loginScreen" class="login-screen">
+    <form id="loginForm" class="login-card">
+      <img class="brand-logo lg" src="/static/branding/logo.png" alt="SHIBLI" width="64" height="64" />
+      <h1 id="loginTitle">SHIBLI C2</h1>
+      <label>Username<input id="loginUser" type="text" autocomplete="off" required /></label>
+      <label>Password
+        <span class="password-row">
+          <input id="loginPass" type="password" autocomplete="current-password" required />
+          <button type="button" class="icon-action pw-toggle" data-password-toggle="loginPass" aria-label="Show password"></button>
+        </span>
+      </label>
+      <div class="connection-mode-field">
+        <span class="mode-label">Connection Mode</span>
+        <div class="mode-toggle" role="group" aria-label="Connection Mode">
+          <button type="button" id="modeLanBtn" class="active" data-mode="lan" aria-pressed="true">LAN</button>
+          <button type="button" id="modeIpBtn" data-mode="ip" aria-pressed="false">IP / Online</button>
+        </div>
+      </div>
+      <p id="loginError" class="login-error"></p>
+      <button type="submit" id="loginSubmit" class="primary full">LOGIN</button>
+      <button type="button" id="forgotPasswordBtn" class="link-btn">Forgot password?</button>
+      <p class="login-version" id="loginVersion">v1.0</p>
+    </form>
+    <form id="forgotPasswordForm" class="login-card hidden">
+      <img class="brand-logo lg" src="/static/branding/logo.png" alt="SHIBLI" width="64" height="64" />
+      <h1>Reset Password</h1>
+      <p class="login-sub">Enter username, recovery code, and new password</p>
+      <label>Username<input id="forgotUser" type="text" autocomplete="off" required /></label>
+      <label>Recovery code<input id="forgotCode" type="text" autocomplete="off" required /></label>
+      <label>New password
+        <span class="password-row">
+          <input id="forgotNewPass" type="password" required />
+          <button type="button" class="icon-action pw-toggle" data-password-toggle="forgotNewPass" aria-label="Show password"></button>
+        </span>
+      </label>
+      <p id="forgotError" class="login-error"></p>
+      <button type="submit" class="primary full">Reset Password</button>
+      <button type="button" id="backToLoginBtn" class="link-btn">Back to sign in</button>
+    </form>
+  </div>
+
+  <!-- APP SHELL -->
+  <div id="appShell" class="app-shell hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <img class="brand-logo" src="/static/branding/logo.png" alt="SHIBLI" width="34" height="34" />
+        <div class="brand-copy">
+          <strong id="systemName">SHIBLI C2</strong>
+          <span>Command &amp; Control</span>
+        </div>
+      </div>
+      <div class="sidebar-section ops-section">
+        <div class="sidebar-label">Operations</div>
+        <nav class="module-list" id="moduleNav"></nav>
+      </div>
+      <div class="sidebar-footer">
+        <div class="version" id="versionTag">v1.0</div>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <div id="mappingBanner" class="mapping-banner hidden" aria-hidden="true"></div>
+      <div class="topbar-stack">
+        <header class="topbar topbar-fixed">
+          <div class="topbar-left">
+            <button type="button" class="menu-btn" id="menuToggle" aria-label="Menu">☰</button>
+            <div class="status-pill online" id="systemStatusText" title="SHIBLI C2 application">Ready</div>
+            <div class="service-chips" id="serviceChips">
+              <span class="chip" id="chipCamStatus">Cams: —</span>
+              <span class="chip" id="chipHwStatus">HW: —</span>
+              <button type="button" class="chip connection-chip" id="connectionModeChip" title="Switch connection mode">Connection: LAN</button>
+            </div>
+          </div>
+          <div class="topbar-right">
+            <button type="button" class="icon-action" id="themeToggle" title="Light/Dark mode">☾</button>
+            <span class="user-badge" id="userBadge" title="">—</span>
+            <button type="button" class="icon-action" id="logoutBtn" title="Logout">⏻</button>
+            <button type="button" class="icon-action" id="fullscreenBtn" title="Fullscreen">⛶</button>
+          </div>
+        </header>
+
+        <div id="dashboardToolbar" class="topbar-ops dashboard-toolbar hidden" aria-hidden="true">
+          <div class="toolbar-scroll">
+            <div class="toolbar-section">
+              <span class="toolbar-label">Recording</span>
+              <div class="recording-controls">
+                <div class="segmented record-segmented">
+                  <button class="active" data-record="off" title="Record Off">Off</button>
+                  <button data-record="ch1" title="Record Day">Day</button>
+                  <button data-record="ch2" title="Record Thermal">Th</button>
+                  <button data-record="both" title="Record Both">Both</button>
+                </div>
+                <div id="recordingStatus" class="recording-status hidden" aria-live="polite">
+                  <span class="rec-dot" aria-hidden="true"></span>
+                  <span id="recordingTimer">00:00:00</span>
+                </div>
+              </div>
+            </div>
+            <div class="toolbar-section">
+              <span class="toolbar-label">Grid</span>
+              <div class="segmented grid-segmented">
+                <button data-grid="1" class="active" title="Single feed">1</button>
+                <button data-grid="4" title="2×2 grid">4</button>
+                <button data-grid="9" title="3×3 grid">9</button>
+                <button data-grid="16" title="4×4 grid">16</button>
+              </div>
+            </div>
+            <div class="toolbar-section toolbar-section-grow">
+              <span class="toolbar-label">Layout</span>
+              <div class="segmented layout-segmented">
+                <button class="active" data-layout="day_thermal" title="Day + Thermal">Day+Th</button>
+                <button data-layout="day_full" title="Full Day">Day</button>
+                <button data-layout="thermal_full" title="Full Thermal">Thermal</button>
+                <button data-layout="custom" title="Custom panels">Custom</button>
+              </div>
+            </div>
+            <div class="toolbar-section toolbar-section-diag">
+              <span class="toolbar-label">Link</span>
+              <div class="diag-chips" id="diagChips" title="Subsystem status">
+                <span class="diag-dot" id="diagGo2rtc" title="Video (go2rtc)">V</span>
+                <span class="diag-dot" id="diagDay" title="Day camera">D</span>
+                <span class="diag-dot" id="diagThermal" title="Thermal">T</span>
+                <span class="diag-dot" id="diagLrf" title="LRF">L</span>
+                <span class="diag-dot" id="diagHw" title="Controls">H</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGE: DASHBOARD -->
+      <section id="page-dashboard" class="page-view">
+        <div class="dashboard-shell" id="dashboardGrid">
+          <div class="camera-zone layout-day_thermal" id="cameraZone">
+            <div id="customLayoutBar" class="custom-layout-bar hidden" aria-hidden="true">
+              <span class="custom-toolbar-title">Custom View</span>
+              <label class="toolbar-field"><span>Select camera</span><select id="customCamSelect" title="Select camera"></select></label>
+              <label class="toolbar-field"><span>Channel</span>
+                <select id="customChannelSelect" title="Channel">
+                  <option value="day">Day</option>
+                  <option value="thermal">Thermal</option>
+                </select>
+              </label>
+              <button type="button" id="customAddPanel" class="mini primary">Add Camera Panel</button>
+              <button type="button" id="customResetLayout" class="mini">Reset View</button>
+            </div>
+            <div class="video-matrix" id="videoMatrix">
+              <div id="customEmptyState" class="custom-empty-state hidden" aria-hidden="true">
+                <p>No camera panels added.</p>
+                <p class="placeholder-hint">Select a camera and channel above, then click Add Camera Panel.</p>
+              </div>
+              <article class="panel video-panel" data-channel="day" id="dayPanel">
+                <header class="panel-title">
+                  <span><span class="live-dot"></span> Day Camera</span>
+                  <span class="panel-actions">
+                    <button type="button" class="mini shot-btn" data-shot="day" title="Screenshot">📷</button>
+                    <button type="button" class="mini min-btn" data-min="day" title="Minimize">⊟</button>
+                    <button type="button" class="mini max-btn" data-max="day" title="Maximize panel">⛶</button>
+                  </span>
+                </header>
+                <div class="video-frame" data-drag-zoom="day">
+                  <video id="dayStream" class="stream video-stream hidden" playsinline autoplay muted></video>
+                  <div class="drag-zoom-layer" aria-hidden="true"></div>
+                  <div class="placeholder day-placeholder">
+                    <div class="placeholder-label" id="dayStatusLabel">No camera connected</div>
+                    <div class="placeholder-hint">Add a camera from the Cameras page · drag box to zoom</div>
+                  </div>
+                  <div class="hud-overlay" id="dayHud"></div>
+                </div>
+              </article>
+              <article class="panel video-panel" data-channel="thermal" id="thermalPanel">
+                <header class="panel-title">
+                  <span><span class="live-dot thermal"></span> Thermal Camera</span>
+                  <span class="panel-actions">
+                    <button type="button" class="mini shot-btn" data-shot="thermal" title="Screenshot">📷</button>
+                    <button type="button" class="mini min-btn" data-min="thermal" title="Minimize">⊟</button>
+                    <button type="button" class="mini max-btn" data-max="thermal" title="Maximize panel">⛶</button>
+                  </span>
+                </header>
+                <div class="video-frame thermal-frame" data-drag-zoom="thermal">
+                  <video id="thermalStream" class="stream video-stream hidden" playsinline autoplay muted></video>
+                  <div class="drag-zoom-layer" aria-hidden="true"></div>
+                  <div class="placeholder thermal-placeholder">
+                    <div class="crosshair"></div>
+                    <div class="placeholder-label" id="thermalStatusLabel">No camera connected</div>
+                    <div class="placeholder-hint">Add a camera from the Cameras page · drag box to zoom</div>
+                  </div>
+                  <div class="hud-overlay" id="thermalHud"></div>
+                </div>
+              </article>
+            </div>
+            <div class="feed-controls-row">
+              <div class="feed-strip">
+                <span class="feed-strip-label">Day</span>
+                <button type="button" class="mini" data-lens="zoom_out" data-channel="day">Z−</button>
+                <button type="button" class="mini" data-lens="zoom_in" data-channel="day">Z+</button>
+                <button type="button" class="mini" data-lens="focus_minus" data-channel="day">N</button>
+                <button type="button" class="mini" data-lens="focus_plus" data-channel="day">F</button>
+                <button type="button" class="mini" id="dayAfcBtn" title="Hold auto focus on the day camera">AFC</button>
+              </div>
+              <div class="feed-strip">
+                <span class="feed-strip-label">Th</span>
+                <button type="button" class="mini" data-lens="zoom_out" data-channel="thermal">Z−</button>
+                <button type="button" class="mini" data-lens="zoom_in" data-channel="thermal">Z+</button>
+                <button type="button" class="mini" data-lens="focus_minus" data-channel="thermal">N</button>
+                <button type="button" class="mini" data-lens="focus_plus" data-channel="thermal">F</button>
+                <button type="button" class="mini" id="thermalAfcBtn" title="Hold auto focus on the thermal camera">AFC</button>
+              </div>
+            </div>
+          </div>
+          <aside class="control-rail hardware-rail" id="hardwareRail">
+            <article class="panel control-card hardware-panel">
+              <header class="panel-title compact">Hardware Controls</header>
+              <p id="hwOfflineNote" class="hw-offline-note hidden">Hardware controls offline — start the controls service or check camera mapping.</p>
+              <div class="hw-test-row">
+                <button type="button" id="hwSelfTestBtn" class="mini">Self-test</button>
+              </div>
+              <pre id="hwSelfTestOut" class="hw-self-test-out hidden"></pre>
+              <label class="ptz-select-wrap ptz-select-in-panel">
+                <span>PTZ target</span>
+                <select id="ptzSelect"></select>
+              </label>
+              <div class="ptz-block">
+                <div class="dpad">
+                  <button type="button" data-ptz="up_left" title="Up-left">◤</button>
+                  <button type="button" data-ptz="up" title="Up">▲</button>
+                  <button type="button" data-ptz="up_right" title="Up-right">◥</button>
+                  <button type="button" data-ptz="left" title="Left">◀</button>
+                  <button type="button" data-ptz="home" class="home" title="Home">⌂</button>
+                  <button type="button" data-ptz="right" title="Right">▶</button>
+                  <button type="button" data-ptz="down_left" title="Down-left">◣</button>
+                  <button type="button" data-ptz="down" title="Down">▼</button>
+                  <button type="button" data-ptz="down_right" title="Down-right">◢</button>
+                </div>
+                <div class="lens-stack">
+                  <button data-lens="zoom_in">Zoom +</button><button data-lens="zoom_out">Zoom −</button>
+                  <button data-lens="focus_plus">Focus +</button><button data-lens="focus_minus">Focus −</button>
+                  <button data-ptz="stop" class="danger">STOP</button>
+                </div>
+              </div>
+              <div class="preset-bar">
+                <select id="presetSelect"><option value="1">Preset 1</option><option value="2">Preset 2</option><option value="3">Preset 3</option></select>
+                <button data-preset="set">Set</button><button data-preset="go">Go</button><button data-preset="delete">Del</button>
+              </div>
+              <div class="inline-controls inline-controls-wide">
+                <label>Speed <select id="ptzSpeed"><option value="low">Low</option><option value="medium" selected>Med</option><option value="high">High</option></select></label>
+                <div class="mode-toggle"><button class="active" data-mode="abs">ABS</button><button data-mode="rel">REL</button></div>
+                <button type="button" id="autoPanBtn" class="mini auto-pan-btn" title="Auto-pan patrol">Auto-pan</button>
+              </div>
+              <div class="hw-osd-row">
+                <span class="hw-row-label">OSD</span>
+                <label class="switch small"><input id="osdToggle" type="checkbox" /><span></span></label>
+                <span id="osdLabel" class="hw-osd-state">Off</span>
+              </div>
+              <div id="ptzTargetRow" class="ptz-target-row hidden">
+                <span class="group-label">Target</span>
+                <div class="segmented ptz-target-segmented">
+                  <button type="button" class="active" data-ptz-target="day">Day</button>
+                  <button type="button" data-ptz-target="thermal">Thermal</button>
+                  <button type="button" data-ptz-target="both">Both</button>
+                </div>
+              </div>
+              <p id="ptzHeadLabel" class="ptz-head-hint hidden">Main PTZ Head — shared Day + Thermal</p>
+            </article>
+            <article class="panel control-card lrf-card">
+              <header class="panel-title compact">LRF</header>
+              <div class="lrf-compact-row">
+                <label>Mode <select id="lrfMode"><option value="single">Single</option><option value="continuous">Cont</option><option value="scan">Scan</option></select></label>
+                <label>Range <input id="rangeInput" value="—" readonly /></label>
+                <button id="measureBtn" class="primary">Sngl</button>
+              </div>
+              <div class="lrf-action-row">
+                <button type="button" class="mini" id="lrfContBtn">Cont</button>
+                <button type="button" class="mini danger" id="lrfStopBtn">Stop</button>
+              </div>
+              <div class="cursor-readout lrf-cursor"><span>X <b id="cursorX">—</b></span><span>Y <b id="cursorY">—</b></span></div>
+            </article>
+            <article class="panel control-card aux-card">
+              <header class="panel-title compact">Auxiliary</header>
+              <div class="aux-row">
+                <button data-quick="auxiliary:wiper" id="wiperBtn">Wiper</button>
+                <button data-quick="auxiliary:heater" id="heaterBtn">Heater</button>
+                <button data-quick="day:nuc" id="nucBtn">NUC</button><button data-quick="thermal:agc" id="agcBtn">AGC</button>
+              </div>
+            </article>
+            <article class="panel control-card illum-card">
+              <header class="panel-title compact illum-title">
+                <span>Illumination</span>
+                <label class="switch small"><input id="illumToggle" type="checkbox" /><span></span></label>
+              </header>
+              <div class="illum-compact-row">
+                <label>Source <select id="illumSource"><option value="ir">IR</option><option value="white">White</option><option value="laser">Laser</option></select></label>
+                <label>Beam <select id="beamMode"><option value="narrow">Narrow</option><option value="medium">Medium</option><option value="wide">Wide</option></select></label>
+                <div class="intensity-row"><button data-intensity="low">Low</button><button class="active" data-intensity="med">Med</button><button data-intensity="high">High</button></div>
+              </div>
+              <div class="illum-meter-row">
+                <span>IR <b id="illumBrightnessVal">50%</b></span>
+                <button type="button" class="mini" id="illumBrightDown">−</button>
+                <button type="button" class="mini" id="illumBrightUp">+</button>
+                <span>FOV <b id="illumFovVal">45°</b></span>
+                <button type="button" class="mini" id="illumFovDown">−</button>
+                <button type="button" class="mini" id="illumFovUp">+</button>
+                <button type="button" class="mini" id="illumFovReset">Reset</button>
+              </div>
+            </article>
+            <article class="panel control-card thermal-card">
+              <header class="panel-title compact">Thermal image</header>
+              <div class="polarity-row">
+                <button type="button" class="mini active" data-polarity="white_hot">White hot</button>
+                <button type="button" class="mini" data-polarity="black_hot">Black hot</button>
+              </div>
+              <label class="thermal-slider">Brightness <b id="thermalBrightnessVal">50</b>
+                <input id="thermalBrightness" type="range" min="0" max="100" value="50" />
+              </label>
+              <label class="thermal-slider">Contrast <b id="thermalContrastVal">50</b>
+                <input id="thermalContrast" type="range" min="0" max="100" value="50" />
+              </label>
+            </article>
+          </aside>
+        </div>
+      </section>
+
+      <!-- PAGE: RECORDINGS -->
+      <section id="page-recordings" class="page-view hidden page-admin">
+        <div class="page-header compact">
+          <h2>Recordings</h2>
+          <p id="recordingsStats">—</p>
+        </div>
+        <div class="page-body">
+        <div class="toolbar">
+          <input id="recSearch" type="search" placeholder="Search name, camera, type…" />
+          <select id="recSort">
+            <option value="date_desc">Newest first</option>
+            <option value="date_asc">Oldest first</option>
+            <option value="name_asc">Name A–Z</option>
+            <option value="name_desc">Name Z–A</option>
+            <option value="camera_asc">Camera</option>
+            <option value="size_desc">Size</option>
+            <option value="duration_desc">Duration</option>
+          </select>
+          <select id="recPageSize">
+            <option value="10">10 / page</option>
+            <option value="20" selected>20 / page</option>
+            <option value="50">50 / page</option>
+            <option value="100">100 / page</option>
+          </select>
+          <button type="button" id="recPrev" class="mini">Prev</button>
+          <span id="recordingsPager">Page 1</span>
+          <button type="button" id="recNext" class="mini">Next</button>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Name</th><th>Camera</th><th>ID</th><th>Date</th><th>Time</th><th>Duration</th><th>Size</th><th>Type</th><th>By / Actions</th></tr></thead>
+            <tbody id="recordingsList"></tbody>
+          </table>
+        </div>
+        </div>
+      </section>
+
+      <!-- PAGE: CAMERAS -->
+      <section id="page-cameras" class="page-view hidden page-admin">
+        <div class="page-header compact">
+          <h2>Cameras</h2>
+          <p id="controlsStatus">—</p>
+          <button type="button" id="syncCamerasBtn" class="mini">Sync Core → Controls</button>
+          <button type="button" id="startOnboardingBtn" class="primary mini">Add Camera Wizard</button>
+        </div>
+        <div class="page-body">
+          <div id="camerasEmpty" class="empty-state">
+            <p>No cameras configured yet.</p>
+            <button type="button" class="primary" id="startOnboardingEmpty">Start Add Camera Wizard</button>
+          </div>
+          <form id="cameraForm" class="form-card camera-form">
+            <h3 id="cameraFormTitle">Add Camera</h3>
+            <input type="hidden" id="cameraEditId" value="" />
+            <div class="form-grid">
+              <label>Camera name <input id="camName" required placeholder="Day Camera 01" /></label>
+              <label>Camera type
+                <select id="camType"><option>Day</option><option>Thermal</option><option>Other</option></select>
+              </label>
+              <label>Connection type
+                <select id="camConnectionMode">
+                  <option value="lan">LAN</option>
+                  <option value="ip">IP / Online</option>
+                  <option value="legacy" id="camModeLegacyOpt" hidden>Unassigned</option>
+                </select>
+              </label>
+              <label>Host / IP <input id="camIp" placeholder="192.0.2.10 or camera.example.net" /></label>
+              <label>RTSP URL <input id="camRtsp" class="wide" placeholder="rtsp://user:pass@HOST:554/Streaming/Channels/102" /></label>
+              <label>ONVIF port <input id="camOnvif" type="number" value="80" min="1" max="65535" /></label>
+              <label>Username <input id="camUser" autocomplete="off" /></label>
+              <label>Password
+                <span class="password-row">
+                  <input id="camPass" type="password" autocomplete="new-password" />
+                  <button type="button" class="icon-action pw-toggle" data-password-toggle="camPass" aria-label="Show password"></button>
+                </span>
+              </label>
+              <label>PTZ mapping
+                <select id="camPtz"><option value="none">No PTZ</option><option value="ptz-1">PTZ 1</option><option value="ptz-2">PTZ 2</option></select>
+              </label>
+              <label>Camera group <input id="camGroup" placeholder="Border-A" /></label>
+              <label class="checkbox-row"><input id="camEnabled" type="checkbox" checked /> Enable camera</label>
+            </div>
+            <p class="placeholder-hint">Host / IP accepts a LAN address or a remote hostname. Switching sites is a configuration change, not a code change.</p>
+            <p id="cameraTestResult" class="login-error"></p>
+            <div class="form-actions">
+              <button type="button" id="testCameraBtn" class="mini">Test Connection</button>
+              <button type="button" id="disableCameraBtn" class="mini danger hidden">Disable</button>
+              <button type="submit" class="primary" id="saveCameraBtn">Save Camera</button>
+              <button type="button" id="clearCameraForm" class="mini">Clear / Add New</button>
+            </div>
+          </form>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Type</th><th>Connection</th><th>Host / IP</th><th>RTSP</th><th>PTZ</th><th>Status</th><th>Actions</th></tr></thead>
+              <tbody id="camerasList"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE: USERS -->
+      <section id="page-users" class="page-view hidden page-admin">
+        <div class="page-header compact"><h2>User Management</h2></div>
+        <div class="page-body">
+        <details class="panel pad role-perms-panel">
+          <summary>Role-level permission viewer</summary>
+          <div id="rolePermissionsTable" class="role-perms-grid"></div>
+        </details>
+        <div class="split-panel">
+          <form id="createUserForm" class="form-card">
+            <h3>Create User</h3>
+            <label>Full name <input id="newFullName" autocomplete="off" /></label>
+            <label>Username <input id="newUsername" autocomplete="off" required /></label>
+            <label>Password
+              <span class="password-row">
+                <input id="newPassword" type="password" autocomplete="new-password" required />
+                <button type="button" class="icon-action pw-toggle" data-password-toggle="newPassword" aria-label="Show password"></button>
+              </span>
+            </label>
+            <label>Role
+              <select id="newRole">
+                <option value="VIEWER">Viewer</option>
+                <option value="OPERATOR">Operator</option>
+                <option value="ADMINISTRATOR">Administrator</option>
+              </select>
+            </label>
+            <button type="submit" class="primary">Create User</button>
+          </form>
+          <div class="table-wrap">
+            <table class="data-table users-table">
+              <thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+              <tbody id="usersList"></tbody>
+            </table>
+          </div>
+        </div>
+        <dialog id="editUserDialog" class="modal-dialog edit-user-dialog">
+          <form id="editUserForm" method="dialog" class="form-card modal-body">
+            <h3>Edit User</h3>
+            <input type="hidden" id="editUsername" />
+            <label>Full name <input id="editFullName" /></label>
+            <label>Role <select id="editRole"><option value="VIEWER">Viewer</option><option value="OPERATOR">Operator</option><option value="ADMINISTRATOR">Administrator</option></select></label>
+            <label class="checkbox-row"><input id="editActive" type="checkbox" /> Active</label>
+            <fieldset id="editPermissionsField">
+              <legend>Custom permissions (override role defaults)</legend>
+              <div id="editPermissionsList" class="perm-checkboxes"></div>
+            </fieldset>
+            <fieldset>
+              <legend>Assigned cameras</legend>
+              <p class="camera-assign-note">Operators can be limited to selected cameras. Leave all unchecked for all cameras.</p>
+              <div id="editCameraAssign" class="perm-checkboxes"></div>
+            </fieldset>
+            <div class="form-actions">
+              <button type="submit" class="primary">Save</button>
+              <button type="button" id="editUserCancel" class="mini">Cancel</button>
+            </div>
+          </form>
+        </dialog>
+        </div>
+      </section>
+
+      <!-- PAGE: AUDIT -->
+      <section id="page-audit" class="page-view hidden page-admin">
+        <div class="page-header compact"><h2>Audit Logs</h2><p>Administrator only — critical actions</p></div>
+        <div class="page-body">
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Module</th><th>Detail</th></tr></thead>
+            <tbody id="auditList"></tbody>
+          </table>
+        </div>
+        </div>
+      </section>
+
+      <!-- PAGE: SETTINGS -->
+      <section id="page-settings" class="page-view hidden page-admin">
+        <div class="settings-shell">
+          <div class="settings-toolbar">
+            <h2 class="settings-title">Settings</h2>
+            <input type="search" id="settingsSearch" class="settings-search" placeholder="Search settings" autocomplete="off" />
+            <div class="settings-toolbar-actions">
+              <button type="button" id="saveSettingsBtn" class="primary mini">Save</button>
+              <button type="button" id="resetSettingsBtn" class="danger mini">Reset</button>
+            </div>
+          </div>
+          <div class="settings-body">
+            <nav class="settings-nav" id="settingsNav" aria-label="Settings categories">
+              <button type="button" class="settings-nav-item active" data-pane="general">General</button>
+              <button type="button" class="settings-nav-item" data-pane="display">Display &amp; OSD</button>
+              <button type="button" class="settings-nav-item" data-pane="camera">Camera &amp; Streaming</button>
+              <button type="button" class="settings-nav-item" data-pane="recording">Recording &amp; Storage</button>
+              <button type="button" class="settings-nav-item" data-pane="ptz">PTZ &amp; Hardware</button>
+              <button type="button" class="settings-nav-item" data-pane="security">User &amp; Security</button>
+              <button type="button" class="settings-nav-item" data-pane="offline">Offline System</button>
+              <button type="button" class="settings-nav-item" data-pane="advanced">Advanced</button>
+            </nav>
+            <div class="settings-content" id="settingsContent">
+              <div class="settings-pane active" data-pane="general">
+                <h3 class="settings-pane-title">General</h3>
+                <div class="setting-row" data-keywords="theme appearance dark light">
+                  <div class="setting-meta"><div class="setting-title">Theme</div><div class="setting-desc">Light or dark appearance for the operator interface.</div></div>
+                  <div class="setting-control"><select id="settingTheme"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+                </div>
+                <div class="setting-row" data-keywords="keyboard shortcuts hotkeys">
+                  <div class="setting-meta"><div class="setting-title">Keyboard shortcuts</div><div class="setting-desc">Enable keyboard control for PTZ and dashboard actions.</div></div>
+                  <div class="setting-control"><label class="setting-check"><input id="settingKeyboard" type="checkbox" /><span>Enabled</span></label></div>
+                </div>
+                <div class="setting-row" data-keywords="dashboard view layout default day thermal">
+                  <div class="setting-meta"><div class="setting-title">Default dashboard view</div><div class="setting-desc">View shown when operators open the dashboard.</div></div>
+                  <div class="setting-control">
+                    <select id="settingDefaultView">
+                      <option value="day_thermal">Day + Thermal</option>
+                      <option value="day_full">Full Day</option>
+                      <option value="thermal_full">Full Thermal</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="setting-row" data-keywords="recordings page size pagination">
+                  <div class="setting-meta"><div class="setting-title">Recordings per page</div><div class="setting-desc">Number of recordings listed on the Recordings page.</div></div>
+                  <div class="setting-control"><select id="settingPageSize"><option>10</option><option selected>20</option><option>50</option><option>100</option></select></div>
+                </div>
+              </div>
+
+              <div class="settings-pane" data-pane="display">
+                <h3 class="settings-pane-title">Display &amp; OSD</h3>
+                <p class="settings-pane-intro">Configure on-screen overlay text and position. Use the OSD toggle on the dashboard hardware panel to show or hide overlays on live video.</p>
+                <div class="setting-row" data-keywords="osd logo text">
+                  <div class="setting-meta"><div class="setting-title">Show logo text</div><div class="setting-desc">Display operator branding on the video overlay.</div></div>
+                  <div class="setting-control"><label class="setting-check"><input id="osdShowLogo" type="checkbox" checked /><span>Enabled</span></label></div>
+                </div>
+                <div class="setting-row" data-keywords="osd logo label">
+                  <div class="setting-meta"><div class="setting-title">Logo text</div><div class="setting-desc">Short label shown on the overlay (e.g. site or system name).</div></div>
+                  <div class="setting-control"><input id="osdLogoText" placeholder="SHIBLI C2" /></div>
+                </div>
+                <div class="setting-row" data-keywords="osd telemetry azimuth elevation range">
+                  <div class="setting-meta"><div class="setting-title">Show telemetry</div><div class="setting-desc">Azimuth, elevation, and LRF range on the overlay.</div></div>
+                  <div class="setting-control"><label class="setting-check"><input id="osdShowTelemetry" type="checkbox" checked /><span>Enabled</span></label></div>
+                </div>
+                <div class="setting-row" data-keywords="osd custom text message">
+                  <div class="setting-meta"><div class="setting-title">Custom overlay text</div><div class="setting-desc">Optional operator message (site ID, mission label, etc.).</div></div>
+                  <div class="setting-control"><input id="osdCustomText" class="wide-input" placeholder="Optional message" /></div>
+                </div>
+                <div class="setting-row" data-keywords="osd position corner">
+                  <div class="setting-meta"><div class="setting-title">Overlay position</div><div class="setting-desc">Corner placement for OSD on Day and Thermal panels.</div></div>
+                  <div class="setting-control">
+                    <select id="osdPosition">
+                      <option value="bottom-left">Bottom left</option>
+                      <option value="bottom-right">Bottom right</option>
+                      <option value="top-left">Top left</option>
+                      <option value="top-right">Top right</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-pane" data-pane="camera">
+                <h3 class="settings-pane-title">Camera &amp; Streaming</h3>
+                <p class="settings-pane-intro">Camera connections are managed on the Cameras page. Defaults below apply to new cameras.</p>
+                <div class="setting-row" data-keywords="onvif port camera">
+                  <div class="setting-meta"><div class="setting-title">Default ONVIF port</div><div class="setting-desc">Standard ONVIF port for new camera entries.</div></div>
+                  <div class="setting-control"><input id="settingOnvifPort" type="number" value="80" min="1" max="65535" disabled /></div>
+                </div>
+                <div class="setting-row" data-keywords="screenshot folder path">
+                  <div class="setting-meta"><div class="setting-title">Screenshot folder</div><div class="setting-desc">Where dashboard screenshots are saved locally.</div></div>
+                  <div class="setting-control"><input id="settingScreenshotPath" class="wide-input" placeholder="data/screenshots/" disabled /></div>
+                </div>
+              </div>
+
+              <div class="settings-pane" data-pane="recording">
+                <h3 class="settings-pane-title">Recording &amp; Storage</h3>
+                <div class="setting-row" data-keywords="recording folder path storage">
+                  <div class="setting-meta"><div class="setting-title">Recording folder</div><div class="setting-desc">Local path for recording metadata and files. Default: <code>data/recordings/</code></div></div>
+                  <div class="setting-control"><input id="settingRecPath" class="wide-input" /></div>
+                </div>
+              </div>
+
+              <div class="settings-pane" data-pane="ptz">
+                <h3 class="settings-pane-title">PTZ &amp; Hardware Controls</h3>
+                <div class="setting-row" data-keywords="ptz label day camera">
+                  <div class="setting-meta"><div class="setting-title">PTZ 1 label</div><div class="setting-desc">Name shown in the hardware controls PTZ selector.</div></div>
+                  <div class="setting-control"><input id="ptz1Label" placeholder="PTZ 1 - Day Camera" /></div>
+                </div>
+                <div class="setting-row" data-keywords="ptz label thermal camera">
+                  <div class="setting-meta"><div class="setting-title">PTZ 2 label</div><div class="setting-desc">Name shown for the second PTZ target.</div></div>
+                  <div class="setting-control"><input id="ptz2Label" placeholder="PTZ 2 - Thermal Camera" /></div>
+                </div>
+                <div class="setting-row" data-keywords="ptz onvif isapi control method">
+                  <div class="setting-meta"><div class="setting-title">Default PTZ control method</div><div class="setting-desc">Protocol used to send pan-tilt-zoom commands.</div></div>
+                  <div class="setting-control"><select id="settingPtzMethod"><option value="onvif">ONVIF</option><option value="isapi">ISAPI</option><option value="manual">Manual</option></select></div>
+                </div>
+                <div class="setting-row" data-keywords="lrf laser range finder">
+                  <div class="setting-meta"><div class="setting-title">Default LRF method</div><div class="setting-desc">How the laser range finder is connected.</div></div>
+                  <div class="setting-control"><select id="settingLrfMethod"><option value="none">Not Configured</option><option value="tcp">TCP</option><option value="serial">Serial</option></select></div>
+                </div>
+                <div class="setting-row" data-keywords="illuminator ir light">
+                  <div class="setting-meta"><div class="setting-title">Default illuminator method</div><div class="setting-desc">How the illuminator hardware is controlled.</div></div>
+                  <div class="setting-control"><select id="settingIllumMethod"><option value="none">Not Configured</option><option value="tcp">TCP</option><option value="rs485">RS485</option></select></div>
+                </div>
+              </div>
+
+              <div class="settings-pane" data-pane="security">
+                <h3 class="settings-pane-title">User &amp; Security</h3>
+                <p class="settings-pane-intro">Create and manage users on the Users page. Sessions use local authentication.</p>
+              </div>
+
+              <div class="settings-pane" data-pane="offline">
+                <h3 class="settings-pane-title">Offline System</h3>
+                <p class="settings-pane-intro">SHIBLI C2 runs offline-first. Reset restores configuration defaults only — recordings and users are not deleted.</p>
+                <div class="setting-row setting-row-info">
+                  <div class="setting-meta"><div class="setting-title">Offline mode</div><div class="setting-desc">Application runs without cloud dependency. All core features work on the local network.</div></div>
+                  <div class="setting-control"><span class="setting-badge">Active</span></div>
+                </div>
+              </div>
+
+              <div class="settings-pane" data-pane="advanced">
+                <h3 class="settings-pane-title">Advanced / Developer View</h3>
+                <p class="settings-pane-intro">Technical configuration for integrators. Normal operators do not need these settings.</p>
+                <div class="setting-row" data-keywords="app port server">
+                  <div class="setting-meta"><div class="setting-title">App port</div><div class="setting-desc">HTTP port for SHIBLI C2. Restart may be required after change.</div></div>
+                  <div class="setting-control"><input id="settingAppPort" type="number" min="1024" max="65535" /></div>
+                </div>
+                <div class="setting-row" data-keywords="database path sqlcipher">
+                  <div class="setting-meta"><div class="setting-title">Database path</div><div class="setting-desc">Encrypted local database file location.</div></div>
+                  <div class="setting-control"><code id="dbPathDisplay" class="code-inline">—</code></div>
+                </div>
+                <div class="setting-row" data-keywords="core url backend service">
+                  <div class="setting-meta"><div class="setting-title">Core service URL</div><div class="setting-desc">SHIBLI-Core camera registry endpoint.</div></div>
+                  <div class="setting-control"><input id="settingCoreUrl" class="wide-input" /></div>
+                </div>
+                <div class="setting-row" data-keywords="controls url ptz hardware">
+                  <div class="setting-meta"><div class="setting-title">Controls service URL</div><div class="setting-desc">SHIBLI-Controls hardware API endpoint.</div></div>
+                  <div class="setting-control"><input id="settingControlsUrl" class="wide-input" /></div>
+                </div>
+                <div class="setting-row" data-keywords="vss url video storage">
+                  <div class="setting-meta"><div class="setting-title">VSS service URL</div><div class="setting-desc">Video storage service endpoint.</div></div>
+                  <div class="setting-control"><input id="settingVssUrl" class="wide-input" /></div>
+                </div>
+                <div class="setting-row setting-row-block" data-keywords="service status backend health">
+                  <div class="setting-meta"><div class="setting-title">Service status</div><div class="setting-desc">Live health check for connected backends.</div></div>
+                  <div class="setting-control setting-control-block"><div id="backendStatus" class="backend-status"></div></div>
+                </div>
+                <div class="setting-row" data-keywords="driver ptz">
+                  <div class="setting-meta"><div class="setting-title">PTZ driver</div><div class="setting-desc">Device driver identifier for PTZ hardware.</div></div>
+                  <div class="setting-control"><input id="driverPtz" /></div>
+                </div>
+                <div class="setting-row" data-keywords="driver lrf">
+                  <div class="setting-meta"><div class="setting-title">LRF driver</div><div class="setting-desc">Device driver identifier for range finder.</div></div>
+                  <div class="setting-control"><input id="driverLrf" /></div>
+                </div>
+                <div class="setting-row" data-keywords="driver illumination">
+                  <div class="setting-meta"><div class="setting-title">Illumination driver</div><div class="setting-desc">Device driver identifier for illuminator.</div></div>
+                  <div class="setting-control"><input id="driverIllum" /></div>
+                </div>
+                <div class="setting-row setting-row-block" data-keywords="config json raw">
+                  <div class="setting-meta"><div class="setting-title">Raw site configuration</div><div class="setting-desc">Read-only JSON from the local configuration store.</div></div>
+                  <div class="setting-control setting-control-block"><pre id="configPreview" class="code-block"></pre></div>
+                </div>
+              </div>
+
+              <p id="settingsNoResults" class="settings-no-results hidden">No settings match your search.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="statusbar">
+        <span id="telemetryLine">AZ — · EL — · RNG —</span>
+        <span id="storageLine">Storage —</span>
+        <span id="serviceStatusLine">Application Ready · Cameras Not Connected · Hardware Controls Offline · Recording Ready · Offline Mode Active</span>
+        <span id="commandLine">Ready</span>
+      </footer>
+      <div class="toast" id="toast"></div>
+    </main>
+  </div>
+
+  <dialog id="cameraOnboardingDialog" class="modal-dialog onboarding-dialog">
+    <form id="cameraOnboardingForm" method="dialog" class="onboarding-body">
+      <div class="onboarding-head">
+        <h2>Add Camera Wizard</h2>
+        <p id="onboardingStepLabel" class="muted">Step 1 of 5</p>
+        <button type="button" class="icon-action" id="onboardingClose" title="Close">✕</button>
+      </div>
+      <div class="onboarding-step" data-step="1">
+        <p>Guided setup for field deployment. Gather camera details from the site team before continuing.</p>
+        <label>Deployment type
+          <select id="wizDeployType">
+            <option value="separate">Separate Day and Thermal devices</option>
+            <option value="shared">Shared PTZ head (Day + Thermal, one mover)</option>
+          </select>
+        </label>
+        <label>Connection type
+          <select id="wizConnectionMode">
+            <option value="lan">LAN</option>
+            <option value="ip">IP / Online</option>
+          </select>
+        </label>
+      </div>
+      <div class="onboarding-step hidden" data-step="2">
+        <h3>Day camera</h3>
+        <label>Name <input id="wizDayName" placeholder="Day Camera 01" required /></label>
+        <label>Host / IP <input id="wizDayIp" placeholder="192.0.2.10 or camera.example.net" /></label>
+        <label>RTSP URL <input id="wizDayRtsp" class="wide" placeholder="rtsp://user:pass@HOST:554/Streaming/Channels/102" /></label>
+        <label>ONVIF port <input id="wizDayOnvif" type="number" value="80" min="1" max="65535" /></label>
+        <label>Username <input id="wizDayUser" autocomplete="off" /></label>
+        <label>Password
+          <span class="password-row">
+            <input id="wizDayPass" type="password" autocomplete="new-password" />
+            <button type="button" class="icon-action pw-toggle" data-password-toggle="wizDayPass" aria-label="Show password"></button>
+          </span>
+        </label>
+      </div>
+      <div class="onboarding-step hidden" data-step="3">
+        <h3>Thermal camera</h3>
+        <p id="wizThermalHint" class="hint hidden">Shared PTZ head — same IP as Day; enter the thermal RTSP stream URL.</p>
+        <label>Name <input id="wizThermalName" placeholder="Thermal Camera 01" /></label>
+        <label>Host / IP <input id="wizThermalIp" placeholder="192.0.2.20 or camera.example.net" /></label>
+        <label>RTSP URL <input id="wizThermalRtsp" class="wide" placeholder="rtsp://user:pass@HOST:5554/live?channel=0&subtype=0&proto=Onvif" /></label>
+        <label>ONVIF port <input id="wizThermalOnvif" type="number" value="80" min="1" max="65535" /></label>
+        <label>Username <input id="wizThermalUser" autocomplete="off" /></label>
+        <label>Password
+          <span class="password-row">
+            <input id="wizThermalPass" type="password" autocomplete="new-password" />
+            <button type="button" class="icon-action pw-toggle" data-password-toggle="wizThermalPass" aria-label="Show password"></button>
+          </span>
+        </label>
+      </div>
+      <div class="onboarding-step hidden" data-step="4">
+        <h3>PTZ &amp; network</h3>
+        <label>Day PTZ mapping
+          <select id="wizDayPtz"><option value="ptz-1">PTZ 1</option><option value="ptz-2">PTZ 2</option><option value="none">No PTZ</option></select>
+        </label>
+        <label id="wizThermalPtzWrap">Thermal PTZ mapping
+          <select id="wizThermalPtz"><option value="ptz-2">PTZ 2</option><option value="ptz-1">PTZ 1</option><option value="none">No PTZ</option></select>
+        </label>
+        <label>Camera group (optional) <input id="wizGroup" placeholder="Border-Tower-A" /></label>
+        <p id="wizTestResult" class="login-error"></p>
+      </div>
+      <div class="onboarding-step hidden" data-step="5">
+        <h3>Review &amp; save</h3>
+        <pre id="wizReview" class="code-block"></pre>
+        <p class="hint">Saves cameras locally, tests connections, and syncs to Hardware Controls when available.</p>
+      </div>
+      <div class="onboarding-actions">
+        <button type="button" class="mini" id="onboardingBack">Back</button>
+        <button type="button" class="mini" id="onboardingTest">Test Connection</button>
+        <button type="button" class="primary" id="onboardingNext">Next</button>
+        <button type="submit" class="primary hidden" id="onboardingFinish">Save &amp; Finish</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="saveSettingsDialog" class="modal-dialog">
+    <div class="confirm-modal-body">
+      <p>Save settings? Some changes may require restart.</p>
+    </div>
+    <div class="confirm-modal-actions">
+      <button type="button" class="mini" id="saveSettingsCancel">Cancel</button>
+      <button type="button" class="primary" id="saveSettingsConfirm">Save</button>
+    </div>
+  </dialog>
+
+  <dialog id="recordingPlayerDialog" class="modal-dialog recording-modal">
+    <div class="recording-modal-head">
+      <div>
+        <strong id="recPlayerTitle">Recording</strong>
+        <p id="recPlayerMeta" class="muted rec-meta">—</p>
+      </div>
+      <button type="button" class="icon-action" id="recPlayerClose" title="Close">✕</button>
+    </div>
+    <video id="recordingPlayer" class="recording-player" controls></video>
+    <div class="recording-modal-actions">
+      <button type="button" class="mini" id="recPlayerExport">Export</button>
+      <button type="button" class="mini danger hidden" id="recPlayerDelete">Delete</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
