@@ -194,13 +194,14 @@ def env_path() -> Path:
     db_exists = db.exists() and db.stat().st_size > 0
     backup_exists = any(p.exists() and p.stat().st_size > 0 for p in backups)
     if db_exists or backup_exists:
-        logger.error(
+        raise RuntimeError(
             "data/.env is missing but an encrypted database or backup exists. "
-            "Not copying .env.example (that would introduce a new SHIBLI_DB_KEY). "
-            "Restore the original data/.env or run: python3 scripts/recover_runtime.py"
+            "Restore the original data/.env. Refusing to create a new environment file."
         )
-        return target
-    for template in (project_root() / ".env.example", project_root() / ".env"):
+    templates = [project_root() / ".env.example"]
+    if install_layout() != "system":
+        templates.append(project_root() / ".env")
+    for template in templates:
         if template.exists():
             shutil.copy2(template, target)
             break
