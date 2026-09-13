@@ -153,6 +153,58 @@ class BootstrapEnvTests(unittest.TestCase):
         self.assertEqual(host, "127.0.0.1")
         self.assertEqual(port, 8080)
 
+    def test_first_run_without_runtime_env_generates_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            os.environ["SHIBLI_INSTALL_LAYOUT"] = "system"
+            os.environ["SHIBLI_ENV"] = "production"
+            os.environ["SHIBLI_PERSISTENT_ROOT"] = str(root)
+            os.environ.pop("SHIBLI_DATA_DIR", None)
+            os.environ.pop("SHIBLI_JWT_SECRET", None)
+            os.environ.pop("JWT_SECRET", None)
+            os.environ.pop("SHIBLI_DB_KEY", None)
+            reset_data_dir_cache()
+            reset_bootstrap_state()
+            (root / "data").mkdir(parents=True, exist_ok=True)
+            bootstrap_environment()
+            self.assertTrue(bootstrap_completed())
+            values = parse_env_file(root / "data" / ".env")
+            self.assertEqual(len(values.get("SHIBLI_JWT_SECRET") or ""), 64)
+            self.assertEqual(len(values.get("SHIBLI_DB_KEY") or ""), 64)
+
+    def test_missing_env_with_existing_db_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            os.environ["SHIBLI_INSTALL_LAYOUT"] = "system"
+            os.environ["SHIBLI_ENV"] = "production"
+            os.environ["SHIBLI_PERSISTENT_ROOT"] = str(root)
+            os.environ.pop("SHIBLI_DATA_DIR", None)
+            os.environ.pop("SHIBLI_JWT_SECRET", None)
+            os.environ.pop("JWT_SECRET", None)
+            os.environ.pop("SHIBLI_DB_KEY", None)
+            reset_data_dir_cache()
+            reset_bootstrap_state()
+            data = root / "data"
+            data.mkdir(parents=True, exist_ok=True)
+            (data / "shibli_c2.db").write_bytes(b"encrypted-placeholder-db")
+            with self.assertRaises(RuntimeError) as ctx:
+                bootstrap_environment()
+            self.assertIn("missing", str(ctx.exception).lower())
+            self.assertFalse(bootstrap_completed())
+            self.assertFalse((data / ".env").exists())
+
+    def test_placeholder_db_key_with_existing_db_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = self._production_root(tmp)
+            env_file = root / "data" / ".env"
+            original = env_file.read_text(encoding="utf-8")
+            (root / "data" / "shibli_c2.db").write_bytes(b"encrypted-placeholder-db")
+            with self.assertRaises(RuntimeError) as ctx:
+                bootstrap_environment()
+            self.assertIn("SHIBLI_DB_KEY", str(ctx.exception))
+            self.assertFalse(bootstrap_completed())
+            self.assertEqual(env_file.read_text(encoding="utf-8"), original)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -40,6 +40,11 @@ class WindowsInstallerTests(unittest.TestCase):
         self.assertIn("FileCopy(Example, EnvFile, True);", self.iss)
         self.assertNotIn("FileCopy(Example, EnvFile, False);", self.iss)
 
+    def test_installer_requires_offline_webview_and_vcredist(self) -> None:
+        self.assertIn("MicrosoftEdgeWebView2RuntimeInstallerX64.exe", self.iss)
+        self.assertIn("vc_redist.x64.exe", self.iss)
+        self.assertNotIn("skipifsourcedoesntexist", self.iss)
+
     def test_installer_does_not_package_live_env(self) -> None:
         files_section = self.iss.split("[Files]", 1)[1].split("[Dirs]", 1)[0]
         self.assertIn(".env.example", files_section)

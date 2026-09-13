@@ -42,8 +42,8 @@ Source: "..\..\..\go2rtc.example.yaml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\runtime\windows\go2rtc.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\..\runtime\windows\ffmpeg.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\..\..\dist\ShibliControls\*"; DestDir: "{app}\controls"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\runtime\windows\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
-Source: "..\..\runtime\windows\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
+Source: "..\..\runtime\windows\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "..\..\runtime\windows\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 ; Persistent data is created under {commonappdata}\ShibliC2 — never overwrite it.
 
 [Dirs]

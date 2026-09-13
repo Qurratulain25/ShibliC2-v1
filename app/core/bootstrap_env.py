@@ -103,19 +103,27 @@ def _ensure_production_secrets(env_file: Path) -> None:
     if not (is_frozen() or install_layout() == "system"):
         return
     os.environ.setdefault("SHIBLI_ENV", "production")
-    if (os.getenv("SHIBLI_ENV") or "").strip().lower() in ("production", "prod"):
-        if not (os.getenv("SHIBLI_JWT_SECRET") or os.getenv("JWT_SECRET") or "").strip():
-            secret = secrets.token_hex(32)
-            _upsert_env_line(env_file, "SHIBLI_JWT_SECRET", secret)
-            os.environ["SHIBLI_JWT_SECRET"] = secret
-        db = data_dir() / "shibli_c2.db"
-        key = (os.getenv("SHIBLI_DB_KEY") or "").strip()
-        has_db = db.exists() and db.stat().st_size > 0
-        if key.lower() in _PLACEHOLDER_DB_KEYS and not has_db:
-            key = secrets.token_hex(32)
-            _upsert_env_line(env_file, "SHIBLI_DB_KEY", key)
-            os.environ["SHIBLI_DB_KEY"] = key
-        _upsert_env_line(env_file, "SHIBLI_ENV", os.environ.get("SHIBLI_ENV", "production"))
+    if (os.getenv("SHIBLI_ENV") or "").strip().lower() not in ("production", "prod"):
+        return
+
+    db = data_dir() / "shibli_c2.db"
+    key = (os.getenv("SHIBLI_DB_KEY") or "").strip()
+    has_db = db.exists() and db.stat().st_size > 0
+    if has_db and (not env_file.is_file() or key.lower() in _PLACEHOLDER_DB_KEYS):
+        raise RuntimeError(
+            "Encrypted database exists but data/.env is missing or SHIBLI_DB_KEY is unset. "
+            "Restore the original data/.env. Refusing to generate a new database key."
+        )
+
+    if not (os.getenv("SHIBLI_JWT_SECRET") or os.getenv("JWT_SECRET") or "").strip():
+        secret = secrets.token_hex(32)
+        _upsert_env_line(env_file, "SHIBLI_JWT_SECRET", secret)
+        os.environ["SHIBLI_JWT_SECRET"] = secret
+    if key.lower() in _PLACEHOLDER_DB_KEYS and not has_db:
+        key = secrets.token_hex(32)
+        _upsert_env_line(env_file, "SHIBLI_DB_KEY", key)
+        os.environ["SHIBLI_DB_KEY"] = key
+    _upsert_env_line(env_file, "SHIBLI_ENV", os.environ.get("SHIBLI_ENV", "production"))
 
 
 def env_str(name: str, default: str = "") -> str:

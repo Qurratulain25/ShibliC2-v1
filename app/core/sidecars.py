@@ -95,10 +95,31 @@ def resolve_controls_cmd() -> list[str] | None:
     return None
 
 
+def _controls_child_env(logs: Path) -> dict[str, str]:
+    """Environment for SHIBLI-controls. Logs must not resolve under Program Files / /opt."""
+    env = os.environ.copy()
+    env.setdefault("PORT", os.getenv("SHIBLI_CONTROLS_PORT", "8001"))
+    secret = (os.getenv("SHIBLI_JWT_SECRET") or os.getenv("JWT_SECRET") or "").strip()
+    if secret:
+        env["JWT_SECRET"] = secret
+        env["SHIBLI_JWT_SECRET"] = secret
+    env["SHIBLI_LOG_DIR"] = str(logs)
+    return env
+
+
+def _packaged_production() -> bool:
+    if is_frozen():
+        return True
+    layout = (os.getenv("SHIBLI_INSTALL_LAYOUT") or "").strip().lower()
+    env_name = (os.getenv("SHIBLI_ENV") or "").strip().lower()
+    return layout == "system" or env_name in ("production", "prod")
+
+
 def start_sidecars() -> list[subprocess.Popen]:
     """Start go2rtc / controls only if they are not already listening."""
     logs = logs_dir()
     logs.mkdir(parents=True, exist_ok=True)
+    started_go2rtc = False
 
     if not _port_open("127.0.0.1", 1984):
         go2rtc = resolve_go2rtc_bin()
@@ -112,6 +133,7 @@ def start_sidecars() -> list[subprocess.Popen]:
                 cwd=str(install_dir()),
             )
             _CHILDREN.append(child)
+            started_go2rtc = True
             logger.info("Started go2rtc pid=%s", child.pid)
         else:
             logger.info("go2rtc not started (binary or config missing)")
@@ -121,9 +143,7 @@ def start_sidecars() -> list[subprocess.Popen]:
     if not _port_open("127.0.0.1", 8001):
         cmd = resolve_controls_cmd()
         if cmd:
-            env = os.environ.copy()
-            env.setdefault("PORT", os.getenv("SHIBLI_CONTROLS_PORT", "8001"))
-            env.setdefault("JWT_SECRET", os.getenv("SHIBLI_JWT_SECRET") or os.getenv("JWT_SECRET") or "")
+            env = _controls_child_env(logs)
             log = (logs / "controls.log").open("ab")
             child = subprocess.Popen(
                 cmd,
@@ -134,14 +154,33 @@ def start_sidecars() -> list[subprocess.Popen]:
             )
             _CHILDREN.append(child)
             logger.info("Started SHIBLI-controls pid=%s", child.pid)
+            deadline = time.time() + 1.0
+            while time.time() < deadline and child.poll() is None:
+                if _port_open("127.0.0.1", 8001):
+                    break
+                time.sleep(0.1)
+            code = child.poll()
+            if code is not None:
+                logger.error(
+                    "SHIBLI-controls exited immediately (code=%s). See %s",
+                    code,
+                    logs / "controls.log",
+                )
+                if _packaged_production():
+                    raise RuntimeError(
+                        "SHIBLI-controls failed to start. See logs/controls.log in the writable runtime."
+                    )
         else:
             logger.info("SHIBLI-controls not started (not bundled and not configured)")
     else:
         logger.info("SHIBLI-controls already listening — leaving existing process")
 
-    deadline = time.time() + 8
-    while time.time() < deadline and not _port_open("127.0.0.1", 1984):
-        time.sleep(0.2)
+    if started_go2rtc:
+        deadline = time.time() + 8
+        while time.time() < deadline and not _port_open("127.0.0.1", 1984):
+            time.sleep(0.2)
+        if not _port_open("127.0.0.1", 1984):
+            logger.error("go2rtc did not start listening on 127.0.0.1:1984")
     return list(_CHILDREN)
 
 

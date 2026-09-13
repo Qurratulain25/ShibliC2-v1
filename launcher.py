@@ -126,6 +126,41 @@ def _icon_path():
     return None
 
 
+def _fatal(message: str, code: int = 1) -> None:
+    print(message, flush=True)
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            ctypes.windll.user32.MessageBoxW(0, message, "SHIBLI C2", 0x10)
+        except Exception:
+            pass
+    raise SystemExit(code)
+
+
+def _wait_for_listen(host: str, port: int, timeout: float = 20.0) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            with socket.create_connection((host, port), timeout=0.4):
+                return True
+        except OSError:
+            time.sleep(0.2)
+    return False
+
+
+def _ensure_backend_listening(host: str, port: int, url: str, server_thread: threading.Thread | None = None) -> None:
+    if _wait_for_listen(host, port):
+        return
+    from app.core.sidecars import stop_sidecars
+
+    stop_sidecars()
+    extra = ""
+    if server_thread is not None and not server_thread.is_alive():
+        extra = " The backend process exited during startup."
+    _fatal(f"ERROR: SHIBLI C2 backend did not start listening on {url}.{extra}")
+
+
 def main() -> None:
     host, port = _prepare_environment()
     from app.core.paths import go2rtc_config_path
@@ -135,12 +170,10 @@ def main() -> None:
     in_use, pid = _port_in_use(host, port)
     if in_use:
         pid_msg = f" (PID {pid})" if pid else ""
-        print(f"ERROR: Port {port} is already in use{pid_msg}.")
-        print("Stop the existing instance, then start again:")
-        print("  ./scripts/stop.sh              (Ubuntu)")
-        print("  ./scripts/restart-shibli.sh    (Ubuntu — stop + reset admin + start)")
-        print("  .\\scripts\\restart-shibli.ps1   (Windows)")
-        raise SystemExit(1)
+        _fatal(
+            f"ERROR: Port {port} is already in use{pid_msg}. "
+            "Stop the existing instance, then start SHIBLI C2 again."
+        )
 
     display_host = "127.0.0.1" if host in ("0.0.0.0", "::") else host
     url = f"http://{display_host}:{port}"
@@ -170,14 +203,9 @@ def main() -> None:
         def run_server() -> None:
             uvicorn.run(app, host=host, port=port, log_level="warning")
 
-        threading.Thread(target=run_server, daemon=True).start()
-        deadline = time.time() + 20
-        while time.time() < deadline:
-            try:
-                with socket.create_connection((display_host, port), timeout=0.4):
-                    break
-            except OSError:
-                time.sleep(0.2)
+        server_thread = threading.Thread(target=run_server, daemon=True)
+        server_thread.start()
+        _ensure_backend_listening(display_host, port, url, server_thread)
         try:
             import inspect
             import webview
@@ -202,9 +230,8 @@ def main() -> None:
             return
         except ImportError:
             if frozen:
-                print("ERROR: Desktop window runtime (pywebview) is missing from this build.", flush=True)
                 stop_sidecars()
-                raise SystemExit(1)
+                _fatal("ERROR: Desktop window runtime (pywebview) is missing from this build.")
             print("pywebview not installed — development browser fallback.", flush=True)
 
     if not no_browser and not frozen:
