@@ -126,6 +126,43 @@ def _icon_path():
     return None
 
 
+def run_backend(host: str, port: int) -> None:
+    """Top-level backend entry. Thread-safe; also safe if ever spawned as a child.
+
+    Frozen Windows uses a thread (not multiprocessing), so freeze_support is not required.
+    Logging is initialized here because uvicorn may reset handlers, and windowed
+    PyInstaller discards stderr.
+    """
+    import logging
+
+    import uvicorn
+
+    from app.core.bootstrap_env import bootstrap_environment
+    from app.core.logging_setup import configure_logging, persist_startup_exception
+    from app.core.paths import project_root
+
+    configure_logging()
+    try:
+        bootstrap_environment(project_root())
+        from app.main import app
+
+        configure_logging()
+        config = uvicorn.Config(
+            app,
+            host=host,
+            port=port,
+            log_level="warning",
+            log_config=None,
+        )
+        server = uvicorn.Server(config)
+        server.install_signal_handlers = lambda: None
+        server.run()
+    except BaseException as exc:
+        persist_startup_exception("Backend failed during startup", exc)
+        logging.getLogger("shibli.backend").error("Backend thread exiting before listen")
+        raise
+
+
 def _fatal(message: str, code: int = 1) -> None:
     print(message, flush=True)
     if sys.platform == "win32":
@@ -157,7 +194,7 @@ def _ensure_backend_listening(host: str, port: int, url: str, server_thread: thr
     stop_sidecars()
     extra = ""
     if server_thread is not None and not server_thread.is_alive():
-        extra = " The backend process exited during startup."
+        extra = " The backend thread exited during startup. See shibli-c2.log."
     _fatal(f"ERROR: SHIBLI C2 backend did not start listening on {url}.{extra}")
 
 
@@ -182,10 +219,8 @@ def main() -> None:
     no_browser = os.getenv("SHIBLI_NO_BROWSER", "").lower() in ("1", "true", "yes")
     want_desktop = os.getenv("SHIBLI_DESKTOP", "1" if frozen else "").lower() in ("1", "true", "yes")
 
-    import uvicorn
     from app.core.logging_setup import configure_logging
     from app.core.version import APP_VERSION_DISPLAY, PRODUCT_NAME
-    from app.main import app
 
     configure_logging()
     start_sidecars()
@@ -200,10 +235,7 @@ def main() -> None:
     print(f"{PRODUCT_NAME} {APP_VERSION_DISPLAY} binding to {host}:{port} …")
 
     if want_desktop and not no_browser:
-        def run_server() -> None:
-            uvicorn.run(app, host=host, port=port, log_level="warning")
-
-        server_thread = threading.Thread(target=run_server, daemon=True)
+        server_thread = threading.Thread(target=run_backend, args=(host, port), daemon=True, name="shibli-backend")
         server_thread.start()
         _ensure_backend_listening(display_host, port, url, server_thread)
         try:
@@ -242,7 +274,7 @@ def main() -> None:
         threading.Thread(target=open_browser, daemon=True).start()
 
     try:
-        uvicorn.run(app, host=host, port=port, log_level="warning")
+        run_backend(host, port)
     finally:
         stop_sidecars()
 

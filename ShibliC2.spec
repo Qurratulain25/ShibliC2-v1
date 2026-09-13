@@ -44,6 +44,13 @@ hidden += [
 extra_datas = []
 extra_binaries = collect_dynamic_libs("sqlcipher3")
 try:
+    sc_datas, sc_bins, sc_hidden = collect_all("sqlcipher3")
+    extra_datas += sc_datas
+    extra_binaries += sc_bins
+    hidden += sc_hidden
+except Exception:
+    pass
+try:
     w_datas, w_bins, w_hidden = collect_all("webview")
     extra_datas += w_datas
     extra_binaries += w_bins
@@ -82,7 +89,10 @@ a = Analysis(
     hiddenimports=sorted(set(hidden)),
     hookspath=[],
     hooksconfig={},
-    runtime_hooks=[str(root / "deployment" / "scripts" / "pyi_rth_gi_fallback.py")],
+    runtime_hooks=[
+        str(root / "deployment" / "scripts" / "pyi_rth_sqlcipher.py"),
+        str(root / "deployment" / "scripts" / "pyi_rth_gi_fallback.py"),
+    ],
     excludes=["tkinter", "matplotlib", "numpy", "pandas"],
     noarchive=False,
     optimize=0,
