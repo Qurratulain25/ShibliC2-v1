@@ -134,6 +134,9 @@ $Out = Join-Path $Root "release\v1.0"
 New-Item -ItemType Directory -Force -Path $Out | Out-Null
 $Iss = Join-Path $Root "deployment\windows\installer\shibli-c2.iss"
 & $Inno.Source $Iss
+if ($LASTEXITCODE -ne 0) {
+    Fail "Inno Setup compiler failed with exit code $LASTEXITCODE"
+}
 $Setup = Join-Path $Out "ShibliC2-Setup-v1.0.exe"
 Require-File $Setup "Installer was not created: $Setup"
 $SetupHash = (Get-FileHash $Setup -Algorithm SHA256).Hash.ToLowerInvariant()
