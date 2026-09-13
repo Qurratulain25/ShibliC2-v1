@@ -5,7 +5,7 @@ on:
 
 jobs:
   installer:
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,18 +17,50 @@ jobs:
           if (-not (Test-Path "deployment/runtime/controls/server.py")) {
             throw "SHIBLI-controls source missing at deployment/runtime/controls"
           }
+      - name: Require Windows SHA256 pins
+        shell: pwsh
+        run: |
+          $pins = Get-Content "deployment/runtime/pins.json" -Raw | ConvertFrom-Json
+          $required = @(
+            @{ Name = "go2rtc.win64_url"; Value = $pins.go2rtc.win64_url },
+            @{ Name = "go2rtc.win64_sha256"; Value = $pins.go2rtc.win64_sha256 },
+            @{ Name = "ffmpeg.windows_url"; Value = $pins.ffmpeg.windows_url },
+            @{ Name = "ffmpeg.windows_sha256"; Value = $pins.ffmpeg.windows_sha256 },
+            @{ Name = "webview2.windows_url"; Value = $pins.webview2.windows_url },
+            @{ Name = "webview2.windows_sha256"; Value = $pins.webview2.windows_sha256 },
+            @{ Name = "vc_redist.windows_url"; Value = $pins.vc_redist.windows_url },
+            @{ Name = "vc_redist.windows_sha256"; Value = $pins.vc_redist.windows_sha256 }
+          )
+          foreach ($item in $required) {
+            if ([string]::IsNullOrWhiteSpace([string]$item.Value)) {
+              throw "Missing required Windows pin: $($item.Name)"
+            }
+          }
       - name: Install Inno Setup
         run: choco install innosetup -y
       - name: Build offline installer
         run: .\deployment\scripts\build-windows.ps1
-      - name: Audit staging
+      - name: Audit offline Windows artifacts
         shell: pwsh
         run: |
           if (Test-Path "dist\ShibliC2\.venv") { throw ".venv leaked into staging" }
-          if (-not (Test-Path "dist\ShibliC2\ShibliC2.exe")) { throw "missing ShibliC2.exe" }
-          if (-not (Test-Path "dist\ShibliControls\ShibliControls.exe")) { throw "missing ShibliControls.exe" }
+          $required = @(
+            "deployment/runtime/windows/go2rtc.exe",
+            "deployment/runtime/windows/ffmpeg.exe",
+            "deployment/runtime/windows/MicrosoftEdgeWebView2RuntimeInstallerX64.exe",
+            "deployment/runtime/windows/vc_redist.x64.exe",
+            "dist/ShibliC2/ShibliC2.exe",
+            "dist/ShibliControls/ShibliControls.exe",
+            "release/v1.0/ShibliC2-Setup-v1.0.exe",
+            "release/v1.0/SHA256SUMS-windows.txt"
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) { throw "missing $path" }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: ShibliC2-Setup-v1.0
-          path: release/v1.0/ShibliC2-Setup-v1.0.exe
+          path: |
+            release/v1.0/ShibliC2-Setup-v1.0.exe
+            release/v1.0/SHA256SUMS-windows.txt
           if-no-files-found: error
