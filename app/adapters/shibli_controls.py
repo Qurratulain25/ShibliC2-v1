@@ -888,8 +888,10 @@ class ShibliControlsAdapter(DeviceAdapter):
 
 
 def build_adapter() -> DeviceAdapter:
+    from ..core.config import resolve_jwt_secret
+
     url = os.getenv("SHIBLI_CONTROLS_URL", "http://127.0.0.1:8001")
-    secret = os.getenv("SHIBLI_JWT_SECRET", "abracadabra")
+    secret = resolve_jwt_secret()
     token = os.getenv("SHIBLI_API_TOKEN", "")
     adapter = ShibliControlsAdapter(url, secret, token)
     # Env-only at import time — avoid DB open during module import (causes startup lock/hang)

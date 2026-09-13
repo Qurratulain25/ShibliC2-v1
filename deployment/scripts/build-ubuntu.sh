@@ -234,7 +234,6 @@ cat > "$STAGE/opt/shiblic2/bin/shibli-c2" <<'EOF'
 #!/bin/bash
 set -euo pipefail
 export SHIBLI_INSTALL_LAYOUT="${SHIBLI_INSTALL_LAYOUT:-system}"
-export SHIBLI_PERSISTENT_ROOT="${SHIBLI_PERSISTENT_ROOT:-/var/lib/shiblic2}"
 export SHIBLI_ENV="${SHIBLI_ENV:-production}"
 export SHIBLI_DESKTOP="${SHIBLI_DESKTOP:-1}"
 export GO2RTC_BIN="${GO2RTC_BIN:-/opt/shiblic2/bin/go2rtc}"

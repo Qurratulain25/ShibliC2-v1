@@ -36,33 +36,47 @@ def _sanitize_environ() -> None:
             os.environ[key] = cleaned
 
 
+def reset_bootstrap_state() -> None:
+    """Test helper — allow bootstrap_environment to run again."""
+    global _BOOTSTRAPPED
+    _BOOTSTRAPPED = False
+
+
+def bootstrap_completed() -> bool:
+    return _BOOTSTRAPPED
+
+
 def bootstrap_environment(project_root: Path | None = None) -> None:
     """Load .env files once and strip Windows CRLF artifacts from values."""
     global _BOOTSTRAPPED
     if _BOOTSTRAPPED:
         return
-    _BOOTSTRAPPED = True
 
     from .paths import data_dir, env_path, project_root as _root
 
     if project_root is None:
         project_root = _root()
 
-    runtime_env = env_path()
-    candidates = [
-        runtime_env,
-        data_dir() / ".env",
-        project_root / "data" / ".env",
-        project_root / ".env",
-    ]
-    for path in candidates:
-        _normalize_env_file(path)
-        if path.is_file():
-            load_dotenv(path, override=False)
+    try:
+        runtime_env = env_path()
+        candidates = [
+            runtime_env,
+            data_dir() / ".env",
+            project_root / "data" / ".env",
+            project_root / ".env",
+        ]
+        for path in candidates:
+            _normalize_env_file(path)
+            if path.is_file():
+                load_dotenv(path, override=False)
 
-    _sanitize_environ()
-    _ensure_production_secrets(runtime_env)
-    _sanitize_environ()
+        _sanitize_environ()
+        _ensure_production_secrets(runtime_env)
+        _sanitize_environ()
+    except Exception:
+        _BOOTSTRAPPED = False
+        raise
+    _BOOTSTRAPPED = True
 
 
 def _upsert_env_line(path: Path, name: str, value: str) -> None:
