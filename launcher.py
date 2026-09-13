@@ -23,12 +23,21 @@ def _prepare_environment() -> tuple[str, int]:
         root = os.path.dirname(os.path.abspath(__file__))
         if root not in sys.path:
             sys.path.insert(0, root)
-    try:
-        from app.core.bootstrap_env import bootstrap_environment, env_str
-        from app.core.paths import project_root
+    from app.core.bootstrap_env import bootstrap_environment, env_str
+    from app.core.paths import project_root
 
+    layout = os.getenv("SHIBLI_INSTALL_LAYOUT", "").strip().lower()
+    env_name = os.getenv("SHIBLI_ENV", "").strip().lower()
+    fail_closed = (
+        getattr(sys, "frozen", False)
+        or layout == "system"
+        or env_name in ("production", "prod")
+    )
+    try:
         bootstrap_environment(project_root())
     except Exception:
+        if fail_closed:
+            raise
         env_str = lambda name, default="": os.getenv(name, default).strip().strip("\r\n")  # noqa: E731
     host = env_str("VMS_HOST", "127.0.0.1")
     try:

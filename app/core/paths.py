@@ -82,10 +82,18 @@ def persistent_root() -> Path:
         for root in candidates:
             if _dir_writable(root):
                 return root
-        fallback = Path.home() / ".local" / "share" / "ShibliC2"
+        fallback = _user_persistent_root()
         fallback.mkdir(parents=True, exist_ok=True)
         return fallback
     return project_root()
+
+
+def _user_persistent_root() -> Path:
+    """Per-user desktop runtime when the system persistent root is not writable."""
+    xdg = os.getenv("XDG_DATA_HOME", "").strip().strip("\r\n")
+    if xdg:
+        return Path(xdg) / "ShibliC2"
+    return Path.home() / ".local" / "share" / "ShibliC2"
 
 
 def _system_persistent() -> bool:

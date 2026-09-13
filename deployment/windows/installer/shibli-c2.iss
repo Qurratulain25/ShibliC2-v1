@@ -47,13 +47,13 @@ Source: "..\..\runtime\windows\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: dele
 ; Persistent data is created under {commonappdata}\ShibliC2 — never overwrite it.
 
 [Dirs]
-Name: "{commonappdata}\ShibliC2\config"
-Name: "{commonappdata}\ShibliC2\data"
-Name: "{commonappdata}\ShibliC2\logs"
-Name: "{commonappdata}\ShibliC2\recordings"
-Name: "{commonappdata}\ShibliC2\snapshots"
-Name: "{commonappdata}\ShibliC2\exports"
-Name: "{commonappdata}\ShibliC2\backups"
+Name: "{commonappdata}\ShibliC2\config"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\data"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\logs"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\recordings"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\snapshots"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\exports"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\backups"; Permissions: users-modify
 
 [Icons]
 Name: "{group}\SHIBLI C2"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\shibli.ico"
@@ -83,6 +83,6 @@ begin
     EnvFile := ExpandConstant('{commonappdata}\ShibliC2\data\.env');
     Example := ExpandConstant('{app}\.env.example');
     if (not FileExists(EnvFile)) and FileExists(Example) then
-      FileCopy(Example, EnvFile, False);
+      FileCopy(Example, EnvFile, True);
   end;
 end;
