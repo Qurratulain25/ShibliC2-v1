@@ -44,6 +44,7 @@ class WindowsInstallerTests(unittest.TestCase):
         self.assertIn("MicrosoftEdgeWebView2RuntimeInstallerX64.exe", self.iss)
         self.assertIn("vc_redist.x64.exe", self.iss)
         self.assertNotIn("skipifsourcedoesntexist", self.iss)
+        self.assertNotIn("skipifdoesntexist", self.iss)
 
     def test_installer_does_not_package_live_env(self) -> None:
         files_section = self.iss.split("[Files]", 1)[1].split("[Dirs]", 1)[0]

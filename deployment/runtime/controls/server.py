@@ -41,7 +41,8 @@ async def lifespan(app: FastAPI):
         print(f"     - LRF device:         {USR_LRF_DEVICE_IP} (prefix: 2F 03 07)")
         print(f"     - Illuminator device: {USR_ILLUMINATOR_DEVICE_IP} (prefix: 2F 04 07)")
     else:
-        print(f"   [FAIL] Failed to start TCP Server (port may be in use)")
+        print("   [UNAVAILABLE] USR/LRF/illuminator listener did not bind.")
+        print("   Site-specific hardware stays offline. Camera/PTZ API is still running.")
     
     print(f"\n[API] Available Camera Management Endpoints:")
     print(f"   GET  /api/camera/cameras              - List all registered cameras")

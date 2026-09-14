@@ -90,11 +90,22 @@ $VcRedist = Join-Path $Runtime "vc_redist.x64.exe"
 Get-PinnedFile $Pins.vc_redist.windows_url $VcRedist $Pins.vc_redist.windows_sha256
 Require-File $VcRedist "Offline VC++ Redistributable is required in deployment/runtime/windows."
 
+. (Join-Path $PSScriptRoot "sign-windows.ps1")
+
 & $Py -m pip install -q -r (Join-Path $Root "requirements.txt") "pywebview==5.4" "pyinstaller==6.11.1"
+& $Py -c "import sqlcipher3.dbapi2 as _sc; print('sqlcipher3 build-host import ok')"
+if ($LASTEXITCODE -ne 0) {
+    Fail "sqlcipher3 failed to import on the Windows build host. Refusing to freeze."
+}
 & $Py -m PyInstaller --noconfirm --distpath (Join-Path $Root "dist") --workpath (Join-Path $Root "build") (Join-Path $Root "ShibliC2.spec")
 if (-not (Test-Path (Join-Path $Root "dist\ShibliC2\ShibliC2.exe"))) {
     Fail "PyInstaller did not produce dist\ShibliC2\ShibliC2.exe"
 }
+& (Join-Path $PSScriptRoot "audit-windows-sqlcipher.ps1")
+if ($LASTEXITCODE -ne 0) {
+    Fail "SQLCipher packaging audit failed."
+}
+Invoke-ShibliAuthenticode -Path (Join-Path $Root "dist\ShibliC2\ShibliC2.exe")
 
 $ControlsDir = $env:SHIBLI_CONTROLS_SOURCE
 if (-not $ControlsDir) { $ControlsDir = Join-Path $Root "deployment\runtime\controls" }
@@ -120,6 +131,7 @@ Remove-Item Env:SHIBLI_CONTROLS_SRC -ErrorAction SilentlyContinue
 if (-not (Test-Path (Join-Path $Root "dist\ShibliControls\ShibliControls.exe"))) {
     Fail "SHIBLI-controls freeze failed. Refusing to ship without hardware controls."
 }
+Invoke-ShibliAuthenticode -Path (Join-Path $Root "dist\ShibliControls\ShibliControls.exe")
 
 & $Py (Join-Path $Root "deployment\scripts\write_runtime_manifest.py")
 
@@ -139,6 +151,10 @@ if ($LASTEXITCODE -ne 0) {
 }
 $Setup = Join-Path $Out "ShibliC2-Setup-v1.0.exe"
 Require-File $Setup "Installer was not created: $Setup"
+Invoke-ShibliAuthenticode -Path $Setup
+Assert-ShibliAuthenticode -Path (Join-Path $Root "dist\ShibliC2\ShibliC2.exe")
+Assert-ShibliAuthenticode -Path (Join-Path $Root "dist\ShibliControls\ShibliControls.exe")
+Assert-ShibliAuthenticode -Path $Setup
 $SetupHash = (Get-FileHash $Setup -Algorithm SHA256).Hash.ToLowerInvariant()
 $Sums = Join-Path $Out "SHA256SUMS-windows.txt"
 Set-Content -Path $Sums -Value "$SetupHash  ShibliC2-Setup-v1.0.exe" -Encoding ascii

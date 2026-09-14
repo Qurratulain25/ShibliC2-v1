@@ -126,16 +126,8 @@ class USRConnectionManager:
             return True
         
         try:
-            # Create server socket with optimized settings
-            self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self.server_socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            
-            # Set socket buffer sizes for faster I/O
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-            self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
-            
-            self.server_socket.bind((self.server_ip, self.server_port))
+            bind_ip = self.server_ip
+            self.server_socket = self._create_listen_socket(bind_ip, self.server_port)
             self.server_socket.listen(5)
             self.server_socket.settimeout(1.0)
             
@@ -153,12 +145,75 @@ class USRConnectionManager:
         except OSError as e:
             if "10048" in str(e) or "Address already in use" in str(e):
                 logger.error(f"Port {self.server_port} already in use. Close other applications using this port.")
+            elif self._address_not_available(e):
+                logger.error(
+                    "USR/LRF/illuminator listener IP %s is not present on this machine (%s). "
+                    "Hardware remains UNAVAILABLE; camera/PTZ API continues.",
+                    self.server_ip,
+                    e,
+                )
             else:
                 logger.error(f"Failed to start server: {e}")
             return False
         except Exception as e:
             logger.error(f"Failed to start server: {e}")
             return False
+
+    @staticmethod
+    def _address_not_available(exc: OSError) -> bool:
+        winerr = getattr(exc, "winerror", None)
+        errno = getattr(exc, "errno", None)
+        text = str(exc)
+        return (
+            winerr == 10049
+            or errno in (99, 125)
+            or "10049" in text
+            or "Cannot assign requested address" in text
+            or "The requested address is not valid" in text
+        )
+
+    def _create_listen_socket(self, bind_ip: str, port: int) -> socket.socket:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
+        try:
+            sock.bind((bind_ip, port))
+            return sock
+        except OSError as exc:
+            if bind_ip not in ("0.0.0.0", "", "::") and self._address_not_available(exc):
+                logger.warning(
+                    "USR listener IP %s is not available (%s). Binding 0.0.0.0:%s so "
+                    "LRF/illuminator stay optional and do not take down SHIBLI-controls.",
+                    bind_ip,
+                    exc,
+                    port,
+                )
+                try:
+                    sock.close()
+                except OSError:
+                    pass
+                fallback = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                fallback.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                fallback.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                fallback.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+                fallback.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, 65536)
+                try:
+                    fallback.bind(("0.0.0.0", port))
+                    self.server_ip = "0.0.0.0"
+                    return fallback
+                except OSError:
+                    try:
+                        fallback.close()
+                    except OSError:
+                        pass
+                    raise exc
+            try:
+                sock.close()
+            except OSError:
+                pass
+            raise
     
     def _accept_loop(self):
         """Background thread that accepts and maintains client connections."""
