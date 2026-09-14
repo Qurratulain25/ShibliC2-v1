@@ -163,6 +163,17 @@ def run_backend(host: str, port: int) -> None:
         raise
 
 
+def _log_path_hint() -> str:
+    try:
+        from app.core.logging_setup import log_file_path
+
+        return str(log_file_path())
+    except Exception:
+        if sys.platform == "win32":
+            return r"C:\ProgramData\ShibliC2\logs\shibli-c2.log"
+        return "<persistent-root>/logs/shibli-c2.log"
+
+
 def _fatal(message: str, code: int = 1) -> None:
     print(message, flush=True)
     if sys.platform == "win32":
@@ -175,7 +186,7 @@ def _fatal(message: str, code: int = 1) -> None:
     raise SystemExit(code)
 
 
-def _wait_for_listen(host: str, port: int, timeout: float = 20.0) -> bool:
+def _wait_for_listen(host: str, port: int, timeout: float = 30.0) -> bool:
     deadline = time.time() + timeout
     while time.time() < deadline:
         try:
@@ -194,11 +205,32 @@ def _ensure_backend_listening(host: str, port: int, url: str, server_thread: thr
     stop_sidecars()
     extra = ""
     if server_thread is not None and not server_thread.is_alive():
-        extra = " The backend thread exited during startup. See shibli-c2.log."
-    _fatal(f"ERROR: SHIBLI C2 backend did not start listening on {url}.{extra}")
+        extra = " The backend thread exited during startup."
+    _fatal(
+        f"ERROR: SHIBLI C2 backend did not start listening on {url}.{extra} "
+        f"See the log file: {_log_path_hint()}"
+    )
 
 
 def main() -> None:
+    try:
+        _main()
+    except SystemExit:
+        raise
+    except BaseException as exc:
+        try:
+            from app.core.logging_setup import persist_startup_exception
+
+            persist_startup_exception("SHIBLI C2 launcher failed", exc)
+        except Exception:
+            pass
+        _fatal(
+            f"ERROR: SHIBLI C2 failed to start ({type(exc).__name__}). "
+            f"See the log file: {_log_path_hint()}"
+        )
+
+
+def _main() -> None:
     host, port = _prepare_environment()
     from app.core.paths import go2rtc_config_path
     from app.core.sidecars import start_sidecars, stop_sidecars

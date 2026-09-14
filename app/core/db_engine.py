@@ -31,10 +31,13 @@ def _prepare_sqlcipher_dll_search() -> None:
                 exe_dir,
             ]
         )
-    for folder in folders:
-        if folder.is_dir() and hasattr(os, "add_dll_directory"):
+    existing = [str(folder) for folder in folders if folder.is_dir()]
+    if existing:
+        os.environ["PATH"] = os.pathsep.join(existing) + os.pathsep + os.environ.get("PATH", "")
+    if hasattr(os, "add_dll_directory"):
+        for folder in existing:
             try:
-                os.add_dll_directory(str(folder))
+                os.add_dll_directory(folder)
             except OSError:
                 pass
 

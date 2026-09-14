@@ -99,6 +99,8 @@ class ReleaseAuditTests(unittest.TestCase):
         self.assertTrue(fatal.called)
         message = fatal.call_args.args[0]
         self.assertIn("did not start listening", message)
+        self.assertIn("log file", message.lower())
+        self.assertIn("shibli-c2.log", message)
 
     def test_ubuntu_go2rtc_uses_writable_persistent_config(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -146,6 +148,18 @@ class ReleaseAuditTests(unittest.TestCase):
             text = (ROOT / rel).read_text(encoding="utf-8")
             self.assertNotIn("chmod 777", text)
             self.assertNotIn("o+w", text)
+
+    def test_sidecar_log_rotates_when_large(self) -> None:
+        from app.core.sidecars import _MAX_SIDECAR_LOG, _open_sidecar_log
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "go2rtc.log"
+            path.write_bytes(b"x" * (_MAX_SIDECAR_LOG + 10))
+            handle = _open_sidecar_log(path)
+            handle.write(b"new\n")
+            handle.close()
+            self.assertTrue((Path(tmp) / "go2rtc.log.1").is_file())
+            self.assertIn(b"new", path.read_bytes())
 
 
 if __name__ == "__main__":

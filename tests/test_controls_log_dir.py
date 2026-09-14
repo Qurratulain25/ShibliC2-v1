@@ -135,6 +135,7 @@ class ControlsLogDirTests(unittest.TestCase):
     def test_logger_has_no_chmod_or_admin_workaround(self) -> None:
         source = LOGGER_PATH.read_text(encoding="utf-8")
         self.assertIn("SHIBLI_LOG_DIR", source)
+        self.assertIn("RotatingFileHandler", source)
         self.assertNotIn("chmod", source)
         self.assertNotIn("777", source)
         self.assertNotIn("runas", source.lower())

@@ -60,8 +60,8 @@ Name: "{group}\SHIBLI C2"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{ap
 Name: "{autodesktop}\SHIBLI C2"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\shibli.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing bundled Visual C++ runtime..."; Flags: skipifdoesntexist waituntilterminated
-Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; StatusMsg: "Installing bundled desktop display runtime..."; Flags: skipifdoesntexist waituntilterminated
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing bundled Visual C++ runtime..."; Flags: waituntilterminated
+Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; StatusMsg: "Installing bundled desktop display runtime..."; Flags: waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch SHIBLI C2"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]

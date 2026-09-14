@@ -14,6 +14,20 @@ from .paths import go2rtc_config_path, install_dir, is_frozen, logs_dir
 logger = logging.getLogger(__name__)
 
 _CHILDREN: list[subprocess.Popen] = []
+_MAX_SIDECAR_LOG = 5 * 1024 * 1024
+
+
+def _open_sidecar_log(path: Path):
+    """Append to a sidecar log, rotating once when the file already exceeds 5 MiB."""
+    try:
+        if path.is_file() and path.stat().st_size >= _MAX_SIDECAR_LOG:
+            rotated = path.with_name(path.name + ".1")
+            if rotated.exists():
+                rotated.unlink()
+            path.replace(rotated)
+    except OSError:
+        logger.warning("Could not rotate sidecar log %s", path)
+    return path.open("ab")
 
 
 def _port_open(host: str, port: int) -> bool:
@@ -125,7 +139,7 @@ def start_sidecars() -> list[subprocess.Popen]:
         go2rtc = resolve_go2rtc_bin()
         config = go2rtc_config_path()
         if go2rtc and config.exists():
-            log = (logs / "go2rtc.log").open("ab")
+            log = _open_sidecar_log(logs / "go2rtc.log")
             child = subprocess.Popen(
                 [str(go2rtc), "-config", str(config)],
                 stdout=log,
@@ -144,7 +158,7 @@ def start_sidecars() -> list[subprocess.Popen]:
         cmd = resolve_controls_cmd()
         if cmd:
             env = _controls_child_env(logs)
-            log = (logs / "controls.log").open("ab")
+            log = _open_sidecar_log(logs / "controls.log")
             child = subprocess.Popen(
                 cmd,
                 stdout=log,
@@ -188,7 +202,9 @@ def stop_sidecars() -> None:
     """Stop only processes this launcher started."""
     while _CHILDREN:
         child = _CHILDREN.pop()
-        if child.poll() is not None:
+        code = child.poll()
+        if code is not None:
+            logger.info("sidecar pid=%s already exited code=%s", getattr(child, "pid", "?"), code)
             continue
         try:
             child.terminate()
@@ -196,5 +212,11 @@ def stop_sidecars() -> None:
                 child.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 child.kill()
+                child.wait(timeout=3)
+            logger.info(
+                "stopped sidecar pid=%s code=%s",
+                getattr(child, "pid", "?"),
+                child.poll(),
+            )
         except Exception:
             logger.debug("Could not stop sidecar pid=%s", getattr(child, "pid", "?"))

@@ -97,6 +97,22 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+
+# CPython's sqlite3.dll may also be collected for plaintext-DB detection.
+# SQLCipher must still be imported first at runtime (pyi_rth_sqlcipher + db_engine).
+# If SQLCipher ships its own sqlite3.dll, keep that copy beside sqlcipher3/.
+_sqlcipher_sqlite = []
+_other_bins = []
+for item in a.binaries:
+    dest = str(item[0]).replace("\\", "/").lower()
+    src = str(item[1]).replace("\\", "/").lower()
+    if dest.endswith("sqlite3.dll") and "sqlcipher" in src:
+        _sqlcipher_sqlite.append(item)
+    else:
+        _other_bins.append(item)
+if _sqlcipher_sqlite:
+    a.binaries = _other_bins + _sqlcipher_sqlite
+
 pyz = PYZ(a.pure)
 
 exe = EXE(

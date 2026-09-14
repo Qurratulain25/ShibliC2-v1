@@ -74,6 +74,13 @@ def configure_logging(*, force: bool = False) -> None:
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
+def log_file_path():
+    """Persistent main backend log. Safe before configure_logging()."""
+    from .paths import logs_dir
+
+    return logs_dir() / "shibli-c2.log"
+
+
 def persist_startup_exception(message: str, exc: BaseException) -> None:
     """Write a redacted traceback to shibli-c2.log even when stderr is discarded."""
     configure_logging()
@@ -81,10 +88,8 @@ def persist_startup_exception(message: str, exc: BaseException) -> None:
     try:
         import traceback
 
-        from .paths import logs_dir
-
         body = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
-        log_path = logs_dir() / "shibli-c2.log"
+        log_path = log_file_path()
         with log_path.open("a", encoding="utf-8") as handle:
             handle.write(redact_text(f"{message}\n{body}"))
             if not body.endswith("\n"):

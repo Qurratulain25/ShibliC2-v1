@@ -152,10 +152,15 @@ class BackendStartupTests(unittest.TestCase):
         self.assertTrue(hook.is_file())
         self.assertIn("collect_dynamic_libs(\"sqlcipher3\")", spec)
         self.assertIn("collect_all(\"sqlcipher3\")", spec)
+        self.assertIn("_sqlcipher_sqlite", spec)
         self.assertIn("sqlcipher3.dbapi2", spec)
         self.assertIn("pyi_rth_sqlcipher.py", spec)
         engine = (ROOT / "app" / "core" / "db_engine.py").read_text(encoding="utf-8")
         self.assertIn("_prepare_sqlcipher_dll_search", engine)
+        self.assertIn('os.environ["PATH"]', engine)
+        hook_src = hook.read_text(encoding="utf-8")
+        self.assertIn('os.environ["PATH"]', hook_src)
+        self.assertIn("sqlcipher3", hook_src)
         self.assertLess(
             engine.find("import sqlcipher3.dbapi2"),
             engine.find("import sqlite3 as std_sqlite3"),
