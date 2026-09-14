@@ -91,6 +91,7 @@ Get-PinnedFile $Pins.vc_redist.windows_url $VcRedist $Pins.vc_redist.windows_sha
 Require-File $VcRedist "Offline VC++ Redistributable is required in deployment/runtime/windows."
 
 . (Join-Path $PSScriptRoot "sign-windows.ps1")
+Initialize-ShibliSigning
 
 & $Py -m pip install -q -r (Join-Path $Root "requirements.txt") "pywebview==5.4" "pyinstaller==6.11.1"
 & $Py -c "import sqlcipher3.dbapi2 as _sc; print('sqlcipher3 build-host import ok')"

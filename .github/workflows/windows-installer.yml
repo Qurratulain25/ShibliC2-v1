@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       sign:
-        description: "Authenticode-sign EXEs and the Inno installer (requires certificate secrets)"
+        description: "Authenticode-sign EXEs and the Inno installer (requires internal SHIBLI PKI secrets)"
         type: boolean
         default: false
 
@@ -43,12 +43,14 @@ jobs:
           }
       - name: Install Inno Setup
         run: choco install innosetup -y
-      - name: Materialize Authenticode certificate
+      - name: Materialize Authenticode material
         shell: pwsh
         env:
           SHIBLI_SIGN_REQUESTED: ${{ github.event.inputs.sign }}
           SHIBLI_SIGN_ENABLED_SECRET: ${{ secrets.SHIBLI_SIGN_ENABLED }}
           SHIBLI_SIGN_PFX_BASE64: ${{ secrets.SHIBLI_SIGN_PFX_BASE64 }}
+          SHIBLI_SIGN_PFX_PASSWORD: ${{ secrets.SHIBLI_SIGN_PFX_PASSWORD }}
+          SHIBLI_SIGN_ROOT_CERT_BASE64: ${{ secrets.SHIBLI_SIGN_ROOT_CERT_BASE64 }}
         run: |
           $enabled = ($env:SHIBLI_SIGN_REQUESTED -eq "true") -or ($env:SHIBLI_SIGN_ENABLED_SECRET -in @("1","true","yes","on"))
           if (-not $enabled) {
@@ -56,31 +58,33 @@ jobs:
             "SHIBLI_SIGN_ENABLED=false" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
             return
           }
-          if ([string]::IsNullOrWhiteSpace($env:SHIBLI_SIGN_PFX_BASE64)) {
-            throw "Signing is enabled but secret SHIBLI_SIGN_PFX_BASE64 is missing. Do not commit certificates."
-          }
-          $pfx = Join-Path $env:RUNNER_TEMP "shibli-codesign.pfx"
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SHIBLI_SIGN_PFX_BASE64.Trim()))
-          "SHIBLI_SIGN_ENABLED=true" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          "SHIBLI_SIGN_PFX=$pfx" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:SHIBLI_SIGN_ENABLED = "true"
+          . .\deployment\scripts\sign-windows.ps1
+          Initialize-ShibliSigning
       - name: Build offline installer
         env:
           SHIBLI_SIGN_PFX_PASSWORD: ${{ secrets.SHIBLI_SIGN_PFX_PASSWORD }}
+          SHIBLI_SIGN_ROOT_CERT_BASE64: ${{ secrets.SHIBLI_SIGN_ROOT_CERT_BASE64 }}
           SHIBLI_SIGN_TIMESTAMP_URL: ${{ vars.SHIBLI_SIGN_TIMESTAMP_URL }}
         run: .\deployment\scripts\build-windows.ps1
       - name: Verify Authenticode when signing is enabled
         shell: pwsh
+        env:
+          SHIBLI_SIGN_ROOT_CERT_BASE64: ${{ secrets.SHIBLI_SIGN_ROOT_CERT_BASE64 }}
         run: |
           if ($env:SHIBLI_SIGN_ENABLED -ne "true") {
             Write-Host "Skipping signature verification because signing was not enabled."
             return
           }
+          . .\deployment\scripts\sign-windows.ps1
+          Import-ShibliInternalRoot
           $files = @(
             "dist\ShibliC2\ShibliC2.exe",
             "dist\ShibliControls\ShibliControls.exe",
             "release\v1.0\ShibliC2-Setup-v1.0.exe"
           )
           foreach ($path in $files) {
+            Assert-ShibliAuthenticode -Path $path
             $sig = Get-AuthenticodeSignature -FilePath $path
             if ($sig.Status -ne "Valid") {
               throw "Authenticode verification failed for $path (status=$($sig.Status))"
@@ -113,3 +117,9 @@ jobs:
             release/v1.0/ShibliC2-Setup-v1.0.exe
             release/v1.0/SHA256SUMS-windows.txt
           if-no-files-found: error
+      - name: Remove temporary signing files
+        if: always()
+        shell: pwsh
+        run: |
+          . .\deployment\scripts\sign-windows.ps1
+          Clear-ShibliSignMaterial
