@@ -92,7 +92,9 @@ function Resolve-ShibliPfxPath {
         return $null
     }
     $dest = Get-ShibliSignTempPath "shibli-codesign.pfx"
+    Write-Host "Decoding PFX"
     $bytes = [Convert]::FromBase64String($b64.Trim())
+    Write-Host "Writing temporary PFX"
     [System.IO.File]::WriteAllBytes($dest, $bytes)
     $env:SHIBLI_SIGN_PFX = $dest
     return $dest
@@ -102,26 +104,61 @@ function Import-ShibliInternalRoot {
     if (-not (Test-ShibliSignEnabled)) {
         return
     }
-    $cer = [string]$env:SHIBLI_SIGN_ROOT_CERT_PATH
-    if ([string]::IsNullOrWhiteSpace($cer) -or -not (Test-Path $cer)) {
-        $b64 = [string]$env:SHIBLI_SIGN_ROOT_CERT_BASE64
-        if ([string]::IsNullOrWhiteSpace($b64)) {
-            throw "Signing is enabled but SHIBLI_SIGN_ROOT_CERT_BASE64 is missing. Refusing unsigned 'signed' release."
+    $cert = $null
+    $store = $null
+    try {
+        $cer = [string]$env:SHIBLI_SIGN_ROOT_CERT_PATH
+        if ([string]::IsNullOrWhiteSpace($cer) -or -not (Test-Path $cer)) {
+            $b64 = [string]$env:SHIBLI_SIGN_ROOT_CERT_BASE64
+            if ([string]::IsNullOrWhiteSpace($b64)) {
+                throw "Signing is enabled but SHIBLI_SIGN_ROOT_CERT_BASE64 is missing. Refusing unsigned 'signed' release."
+            }
+            $cer = Get-ShibliSignTempPath "shibli-internal-root.cer"
+            Write-Host "Decoding public root"
+            $bytes = [Convert]::FromBase64String($b64.Trim())
+            Write-Host "Writing temporary root"
+            [System.IO.File]::WriteAllBytes($cer, $bytes)
+            $env:SHIBLI_SIGN_ROOT_CERT_PATH = $cer
         }
-        $cer = Get-ShibliSignTempPath "shibli-internal-root.cer"
-        $bytes = [Convert]::FromBase64String($b64.Trim())
-        [System.IO.File]::WriteAllBytes($cer, $bytes)
-        $env:SHIBLI_SIGN_ROOT_CERT_PATH = $cer
+        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cer)
+        if ($cert.HasPrivateKey) {
+            throw "SHIBLI_SIGN_ROOT_CERT_BASE64 must be the PUBLIC root certificate only. Private root key is never required and must not be present."
+        }
+        if ($cert.Subject -notlike "*$($script:ShibliInternalRootCn)*") {
+            throw "Imported root certificate subject is not CN=$($script:ShibliInternalRootCn)."
+        }
+        $env:SHIBLI_SIGN_ROOT_THUMBPRINT = $cert.Thumbprint
+
+        Write-Host "Opening CurrentUser Root store"
+        $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
+            [System.Security.Cryptography.X509Certificates.StoreName]::Root,
+            [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
+        )
+        $store.Open(
+            [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite
+        )
+        $already = $store.Certificates.Find(
+            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,
+            $cert.Thumbprint,
+            $false
+        )
+        if ($already.Count -gt 0) {
+            Write-Host "Root certificate already present in CurrentUser Root store; skipping add"
+        } else {
+            Write-Host "Adding root certificate"
+            $store.Add($cert)
+        }
+        Write-Host "Root import complete"
+        Write-Host "Imported SHIBLI public root CA into CurrentUser Root for this runner only. Arbitrary client PCs will not trust it until they import the same public root."
+    } finally {
+        if ($null -ne $store) {
+            $store.Close()
+            $store.Dispose()
+        }
+        if ($null -ne $cert) {
+            $cert.Dispose()
+        }
     }
-    $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2 $cer
-    if ($cert.HasPrivateKey) {
-        throw "SHIBLI_SIGN_ROOT_CERT_BASE64 must be the PUBLIC root certificate only. Private root key is never required and must not be present."
-    }
-    if ($cert.Subject -notlike "*$($script:ShibliInternalRootCn)*") {
-        throw "Imported root certificate subject is not CN=$($script:ShibliInternalRootCn)."
-    }
-    Import-Certificate -FilePath $cer -CertStoreLocation Cert:\CurrentUser\Root | Out-Null
-    Write-Host "Imported SHIBLI public root CA into CurrentUser\\Root for this runner only. Arbitrary client PCs will not trust it until they import the same public root."
 }
 
 function Initialize-ShibliSigning {
@@ -141,11 +178,52 @@ function Initialize-ShibliSigning {
         if ($env:SHIBLI_SIGN_ROOT_CERT_PATH) {
             Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ROOT_CERT_PATH=$($env:SHIBLI_SIGN_ROOT_CERT_PATH)"
         }
+        if ($env:SHIBLI_SIGN_ROOT_THUMBPRINT) {
+            Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ROOT_THUMBPRINT=$($env:SHIBLI_SIGN_ROOT_THUMBPRINT)"
+        }
     }
-    Write-Host "Internal Authenticode material ready (PFX and public root decoded; secrets not logged)."
+    Write-Host "Signing material initialization complete"
+}
+
+function Remove-ShibliInternalRootFromCurrentUserStore {
+    $thumb = [string]$env:SHIBLI_SIGN_ROOT_THUMBPRINT
+    if ([string]::IsNullOrWhiteSpace($thumb)) {
+        return
+    }
+    $store = $null
+    try {
+        Write-Host "Opening CurrentUser Root store to remove CI-imported root by thumbprint"
+        $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
+            [System.Security.Cryptography.X509Certificates.StoreName]::Root,
+            [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
+        )
+        $store.Open(
+            [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite
+        )
+        $matches = $store.Certificates.Find(
+            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,
+            $thumb,
+            $false
+        )
+        foreach ($item in $matches) {
+            $store.Remove($item)
+            $item.Dispose()
+        }
+        if ($matches.Count -gt 0) {
+            Write-Host "Removed CI-imported SHIBLI public root from CurrentUser Root store"
+        }
+    } catch {
+        Write-Host "Could not remove CI-imported root from CurrentUser Root store; temporary files are still deleted."
+    } finally {
+        if ($null -ne $store) {
+            $store.Close()
+            $store.Dispose()
+        }
+    }
 }
 
 function Clear-ShibliSignMaterial {
+    Remove-ShibliInternalRootFromCurrentUserStore
     $candidates = @(
         [string]$env:SHIBLI_SIGN_PFX,
         [string]$env:SHIBLI_SIGN_ROOT_CERT_PATH,

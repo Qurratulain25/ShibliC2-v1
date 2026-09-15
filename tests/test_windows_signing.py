@@ -37,13 +37,44 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         self.assertIn("function Import-ShibliInternalRoot", self.sign)
         self.assertIn("shibli-internal-root.cer", self.sign)
         self.assertIn("SHIBLI_SIGN_ROOT_CERT_BASE64", self.sign)
-        self.assertIn("Cert:\\CurrentUser\\Root", self.sign)
-        self.assertIn("Import-Certificate", self.sign)
         self.assertIn("HasPrivateKey", self.sign)
         self.assertIn("Initialize-ShibliSigning", self.workflow)
         self.assertIn("Import-ShibliInternalRoot", self.workflow)
+        self.assertNotIn("Import-Certificate", self.sign)
+        self.assertNotIn("Get-PfxCertificate", self.sign)
+        self.assertNotIn("Read-Host", self.sign)
+        self.assertIn("X509Store", self.sign)
+        self.assertIn("StoreName]::Root", self.sign)
+        self.assertIn("StoreLocation]::CurrentUser", self.sign)
+        self.assertIn("FindByThumbprint", self.sign)
+        self.assertIn("already present", self.sign)
         self.assertNotIn("LocalMachine\\Root", self.sign)
-        self.assertNotIn("Cert:\\LocalMachine\\Root", self.sign)
+        self.assertNotIn("StoreLocation]::LocalMachine", self.sign)
+
+    def test_root_import_is_non_interactive_with_progress_logs(self) -> None:
+        for needle in (
+            "Decoding PFX",
+            "Writing temporary PFX",
+            "Decoding public root",
+            "Writing temporary root",
+            "Opening CurrentUser Root store",
+            "Adding root certificate",
+            "Root import complete",
+            "Signing material initialization complete",
+        ):
+            self.assertIn(needle, self.sign)
+        self.assertIn("$store.Add($cert)", self.sign)
+        self.assertIn("$store.Close()", self.sign)
+        self.assertIn("$store.Dispose()", self.sign)
+        self.assertIn("$cert.Dispose()", self.sign)
+        self.assertNotIn("Write-Host $password", self.sign)
+        self.assertNotIn("Write-Host $b64", self.sign)
+
+    def test_cleanup_removes_ci_root_by_thumbprint(self) -> None:
+        self.assertIn("function Remove-ShibliInternalRootFromCurrentUserStore", self.sign)
+        self.assertIn("SHIBLI_SIGN_ROOT_THUMBPRINT", self.sign)
+        self.assertIn("$store.Remove($item)", self.sign)
+        self.assertIn("FindByThumbprint", self.sign)
 
     def test_signing_fails_if_root_pfx_or_password_missing(self) -> None:
         self.assertIn("function Assert-ShibliSigningSecrets", self.sign)
@@ -106,6 +137,7 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         self.assertIn("Remove temporary signing files", self.workflow)
         self.assertIn("if: always()", self.workflow)
         self.assertIn("Clear-ShibliSignMaterial", self.workflow)
+        self.assertIn("Remove-ShibliInternalRootFromCurrentUserStore", self.sign)
 
     def test_private_signing_material_not_committed_or_logged(self) -> None:
         self.assertNotIn("BEGIN CERTIFICATE", self.sign)
