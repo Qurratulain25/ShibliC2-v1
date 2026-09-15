@@ -1,6 +1,7 @@
 """Windows Authenticode pipeline must sign and verify against the internal SHIBLI PKI."""
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -15,6 +16,16 @@ REQUIRED_SIGNED = (
     r"dist\ShibliC2\ShibliC2.exe",
     r"dist\ShibliControls\ShibliControls.exe",
     r"release\v1.0\ShibliC2-Setup-v1.0.exe",
+)
+
+FORBIDDEN_STORE = (
+    "Import-Certificate",
+    "X509Store",
+    "Store.Add",
+    "certutil",
+    "TrustedPublisher",
+    r"CurrentUser\Root",
+    r"LocalMachine\Root",
 )
 
 
@@ -33,48 +44,40 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         self.assertNotIn("PRIVATE KEY", self.workflow)
         self.assertNotIn("BEGIN RSA", self.workflow)
 
-    def test_root_cert_decoded_and_imported_when_signing_enabled(self) -> None:
-        self.assertIn("function Import-ShibliInternalRoot", self.sign)
-        self.assertIn("shibli-internal-root.cer", self.sign)
-        self.assertIn("SHIBLI_SIGN_ROOT_CERT_BASE64", self.sign)
-        self.assertIn("HasPrivateKey", self.sign)
-        self.assertIn("Initialize-ShibliSigning", self.workflow)
-        self.assertIn("Import-ShibliInternalRoot", self.workflow)
-        self.assertNotIn("Import-Certificate", self.sign)
+    def test_ci_does_not_touch_windows_certificate_stores(self) -> None:
+        for needle in FORBIDDEN_STORE:
+            self.assertNotIn(needle, self.sign, msg=needle)
+        self.assertIsNone(re.search(r"Store\.Add", self.sign))
         self.assertNotIn("Get-PfxCertificate", self.sign)
         self.assertNotIn("Read-Host", self.sign)
-        self.assertIn("X509Store", self.sign)
-        self.assertIn("StoreName]::Root", self.sign)
-        self.assertIn("StoreLocation]::CurrentUser", self.sign)
-        self.assertIn("FindByThumbprint", self.sign)
-        self.assertIn("already present", self.sign)
-        self.assertNotIn("LocalMachine\\Root", self.sign)
-        self.assertNotIn("StoreLocation]::LocalMachine", self.sign)
 
-    def test_root_import_is_non_interactive_with_progress_logs(self) -> None:
+    def test_custom_root_trust_verification_literals(self) -> None:
         for needle in (
-            "Decoding PFX",
-            "Writing temporary PFX",
-            "Decoding public root",
-            "Writing temporary root",
-            "Opening CurrentUser Root store",
-            "Adding root certificate",
-            "Root import complete",
-            "Signing material initialization complete",
+            "CustomRootTrust",
+            "CustomTrustStore",
+            "Get-AuthenticodeSignature",
+            "HashMismatch",
+            "NotSigned",
         ):
             self.assertIn(needle, self.sign)
-        self.assertIn("$store.Add($cert)", self.sign)
-        self.assertIn("$store.Close()", self.sign)
-        self.assertIn("$store.Dispose()", self.sign)
-        self.assertIn("$cert.Dispose()", self.sign)
-        self.assertNotIn("Write-Host $password", self.sign)
-        self.assertNotIn("Write-Host $b64", self.sign)
+        self.assertIn("X509ChainTrustMode", self.sign)
+        self.assertIn("chain.Build", self.sign)
+        self.assertIn("HasPrivateKey", self.sign)
+        self.assertIn("SHIBLI C2 Internal Root CA", self.sign)
+        self.assertIn("SHIBLI C2 Code Signing", self.sign)
+        self.assertIn("1.3.6.1.5.5.7.3.3", self.sign)
 
-    def test_cleanup_removes_ci_root_by_thumbprint(self) -> None:
-        self.assertIn("function Remove-ShibliInternalRootFromCurrentUserStore", self.sign)
-        self.assertIn("SHIBLI_SIGN_ROOT_THUMBPRINT", self.sign)
-        self.assertIn("$store.Remove($item)", self.sign)
-        self.assertIn("FindByThumbprint", self.sign)
+    def test_initialize_only_materializes_files(self) -> None:
+        self.assertIn("function Initialize-ShibliSigning", self.sign)
+        self.assertIn("Decoding PFX", self.sign)
+        self.assertIn("Writing temporary PFX", self.sign)
+        self.assertIn("Decoding public root", self.sign)
+        self.assertIn("Writing temporary root", self.sign)
+        self.assertIn("Signing material initialization complete", self.sign)
+        self.assertIn("SHIBLI_SIGN_ROOT_CERT_PATH", self.sign)
+        init = self.sign.split("function Initialize-ShibliSigning", 1)[1].split("function ", 1)[0]
+        self.assertNotIn("X509Store", init)
+        self.assertNotIn("Import-Certificate", init)
 
     def test_signing_fails_if_root_pfx_or_password_missing(self) -> None:
         self.assertIn("function Assert-ShibliSigningSecrets", self.sign)
@@ -97,9 +100,8 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         for path in REQUIRED_SIGNED:
             self.assertIn(path, self.workflow)
         self.assertIn("Get-AuthenticodeSignature", self.sign)
-        self.assertIn('$sig.Status -ne "Valid"', self.sign)
-        self.assertIn("function Test-ShibliChainsToInternalRoot", self.sign)
-        self.assertIn("SHIBLI C2 Internal Root CA", self.sign)
+        self.assertIn("NotSigned", self.sign)
+        self.assertIn("HashMismatch", self.sign)
         self.assertGreater(
             self.build.find("Assert-ShibliAuthenticode -Path $Setup"),
             self.build.find("Invoke-ShibliAuthenticode -Path $Setup"),
@@ -129,15 +131,17 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         self.assertIn("/tr", self.sign)
         self.assertIn("timestamp.digicert.com", self.sign)
 
-    def test_cleanup_deletes_temp_pfx_and_root_files(self) -> None:
+    def test_cleanup_deletes_only_temp_pfx_and_cer_files(self) -> None:
         self.assertIn("function Clear-ShibliSignMaterial", self.sign)
         self.assertIn("shibli-codesign.pfx", self.sign)
         self.assertIn("shibli-internal-root.cer", self.sign)
         self.assertIn("Remove-Item", self.sign)
+        self.assertNotIn("function Remove-ShibliInternalRootFromCurrentUserStore", self.sign)
+        cleanup = self.sign.split("function Clear-ShibliSignMaterial", 1)[1].split("function ", 1)[0]
+        self.assertNotIn("X509Store", cleanup)
         self.assertIn("Remove temporary signing files", self.workflow)
         self.assertIn("if: always()", self.workflow)
         self.assertIn("Clear-ShibliSignMaterial", self.workflow)
-        self.assertIn("Remove-ShibliInternalRootFromCurrentUserStore", self.sign)
 
     def test_private_signing_material_not_committed_or_logged(self) -> None:
         self.assertNotIn("BEGIN CERTIFICATE", self.sign)
@@ -157,8 +161,8 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         self.assertTrue(AUDIT.is_file())
 
     def test_internal_ca_is_not_claimed_universally_trusted(self) -> None:
-        self.assertIn("Arbitrary client PCs will not trust it", self.sign)
-        self.assertIn("explicitly trust", self.sign)
+        self.assertIn("explicitly trust the public root CA", self.sign)
+        self.assertIn("never installs the CA into the Windows trust store", self.sign)
 
 
 if __name__ == "__main__":

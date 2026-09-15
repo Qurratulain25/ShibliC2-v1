@@ -6,6 +6,8 @@
 #   Root (PUBLIC only): CN=SHIBLI C2 Internal Root CA
 #   Leaf:               CN=SHIBLI C2 Code Signing  EKU=Code Signing
 # Client/QA machines must explicitly trust the public root CA.
+# CI never installs the CA into the Windows trust store. Verification uses
+# X509Chain CustomRootTrust against the temporary public root file only.
 #
 # Enable with SHIBLI_SIGN_ENABLED=true and:
 #   SHIBLI_SIGN_PFX_BASE64          (or SHIBLI_SIGN_PFX path)
@@ -22,6 +24,7 @@ $ErrorActionPreference = "Stop"
 
 $script:ShibliInternalRootCn = "SHIBLI C2 Internal Root CA"
 $script:ShibliCodeSigningCn = "SHIBLI C2 Code Signing"
+$script:ShibliCodeSigningEkuOid = "1.3.6.1.5.5.7.3.3"
 
 function Test-ShibliSignEnabled {
     $raw = [string]$env:SHIBLI_SIGN_ENABLED
@@ -100,65 +103,37 @@ function Resolve-ShibliPfxPath {
     return $dest
 }
 
-function Import-ShibliInternalRoot {
-    if (-not (Test-ShibliSignEnabled)) {
-        return
+function Resolve-ShibliRootCertPath {
+    $cer = [string]$env:SHIBLI_SIGN_ROOT_CERT_PATH
+    if (-not [string]::IsNullOrWhiteSpace($cer) -and (Test-Path $cer)) {
+        return (Resolve-Path $cer).Path
     }
-    $cert = $null
-    $store = $null
-    try {
-        $cer = [string]$env:SHIBLI_SIGN_ROOT_CERT_PATH
-        if ([string]::IsNullOrWhiteSpace($cer) -or -not (Test-Path $cer)) {
-            $b64 = [string]$env:SHIBLI_SIGN_ROOT_CERT_BASE64
-            if ([string]::IsNullOrWhiteSpace($b64)) {
-                throw "Signing is enabled but SHIBLI_SIGN_ROOT_CERT_BASE64 is missing. Refusing unsigned 'signed' release."
-            }
-            $cer = Get-ShibliSignTempPath "shibli-internal-root.cer"
-            Write-Host "Decoding public root"
-            $bytes = [Convert]::FromBase64String($b64.Trim())
-            Write-Host "Writing temporary root"
-            [System.IO.File]::WriteAllBytes($cer, $bytes)
-            $env:SHIBLI_SIGN_ROOT_CERT_PATH = $cer
-        }
-        $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cer)
-        if ($cert.HasPrivateKey) {
-            throw "SHIBLI_SIGN_ROOT_CERT_BASE64 must be the PUBLIC root certificate only. Private root key is never required and must not be present."
-        }
-        if ($cert.Subject -notlike "*$($script:ShibliInternalRootCn)*") {
-            throw "Imported root certificate subject is not CN=$($script:ShibliInternalRootCn)."
-        }
-        $env:SHIBLI_SIGN_ROOT_THUMBPRINT = $cert.Thumbprint
+    $b64 = [string]$env:SHIBLI_SIGN_ROOT_CERT_BASE64
+    if ([string]::IsNullOrWhiteSpace($b64)) {
+        throw "Signing is enabled but SHIBLI_SIGN_ROOT_CERT_BASE64 is missing. Refusing unsigned 'signed' release."
+    }
+    $cer = Get-ShibliSignTempPath "shibli-internal-root.cer"
+    Write-Host "Decoding public root"
+    $bytes = [Convert]::FromBase64String($b64.Trim())
+    Write-Host "Writing temporary root"
+    [System.IO.File]::WriteAllBytes($cer, $bytes)
+    $env:SHIBLI_SIGN_ROOT_CERT_PATH = $cer
+    return $cer
+}
 
-        Write-Host "Opening CurrentUser Root store"
-        $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
-            [System.Security.Cryptography.X509Certificates.StoreName]::Root,
-            [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
-        )
-        $store.Open(
-            [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite
-        )
-        $already = $store.Certificates.Find(
-            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,
-            $cert.Thumbprint,
-            $false
-        )
-        if ($already.Count -gt 0) {
-            Write-Host "Root certificate already present in CurrentUser Root store; skipping add"
-        } else {
-            Write-Host "Adding root certificate"
-            $store.Add($cert)
-        }
-        Write-Host "Root import complete"
-        Write-Host "Imported SHIBLI public root CA into CurrentUser Root for this runner only. Arbitrary client PCs will not trust it until they import the same public root."
-    } finally {
-        if ($null -ne $store) {
-            $store.Close()
-            $store.Dispose()
-        }
-        if ($null -ne $cert) {
-            $cert.Dispose()
-        }
+function Get-ShibliPublicRootCertificate {
+    $cer = Resolve-ShibliRootCertPath
+    $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($cer)
+    if ($cert.HasPrivateKey) {
+        $cert.Dispose()
+        throw "SHIBLI_SIGN_ROOT_CERT_BASE64 must be the PUBLIC root certificate only. Private root key is never required and must not be present."
     }
+    if ($cert.Subject -notlike "*$($script:ShibliInternalRootCn)*") {
+        $cert.Dispose()
+        throw "Public root certificate subject is not CN=$($script:ShibliInternalRootCn)."
+    }
+    $env:SHIBLI_SIGN_ROOT_THUMBPRINT = $cert.Thumbprint
+    return $cert
 }
 
 function Initialize-ShibliSigning {
@@ -167,63 +142,48 @@ function Initialize-ShibliSigning {
         return
     }
     Assert-ShibliSigningSecrets
-    $pfx = Resolve-ShibliPfxPath
-    if (-not $pfx) {
-        throw "Signing is enabled but the PFX could not be materialized."
-    }
-    Import-ShibliInternalRoot
-    if ($env:GITHUB_ENV) {
-        Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ENABLED=true"
-        Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_PFX=$pfx"
-        if ($env:SHIBLI_SIGN_ROOT_CERT_PATH) {
+    $rootCert = $null
+    try {
+        $pfx = Resolve-ShibliPfxPath
+        if (-not $pfx) {
+            throw "Signing is enabled but the PFX could not be materialized."
+        }
+        $null = Resolve-ShibliRootCertPath
+        $rootCert = Get-ShibliPublicRootCertificate
+        if ($env:GITHUB_ENV) {
+            Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ENABLED=true"
+            Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_PFX=$pfx"
             Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ROOT_CERT_PATH=$($env:SHIBLI_SIGN_ROOT_CERT_PATH)"
+            if ($env:SHIBLI_SIGN_ROOT_THUMBPRINT) {
+                Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ROOT_THUMBPRINT=$($env:SHIBLI_SIGN_ROOT_THUMBPRINT)"
+            }
         }
-        if ($env:SHIBLI_SIGN_ROOT_THUMBPRINT) {
-            Add-Content -Path $env:GITHUB_ENV -Value "SHIBLI_SIGN_ROOT_THUMBPRINT=$($env:SHIBLI_SIGN_ROOT_THUMBPRINT)"
+        Write-Host "Signing material initialization complete"
+    } finally {
+        if ($null -ne $rootCert) {
+            $rootCert.Dispose()
         }
     }
-    Write-Host "Signing material initialization complete"
 }
 
-function Remove-ShibliInternalRootFromCurrentUserStore {
-    $thumb = [string]$env:SHIBLI_SIGN_ROOT_THUMBPRINT
-    if ([string]::IsNullOrWhiteSpace($thumb)) {
+function Import-ShibliInternalRoot {
+    # Workflow compatibility: materialize the public root CER only. Does not
+    # change any Windows trust store.
+    if (-not (Test-ShibliSignEnabled)) {
         return
     }
-    $store = $null
+    $rootCert = $null
     try {
-        Write-Host "Opening CurrentUser Root store to remove CI-imported root by thumbprint"
-        $store = [System.Security.Cryptography.X509Certificates.X509Store]::new(
-            [System.Security.Cryptography.X509Certificates.StoreName]::Root,
-            [System.Security.Cryptography.X509Certificates.StoreLocation]::CurrentUser
-        )
-        $store.Open(
-            [System.Security.Cryptography.X509Certificates.OpenFlags]::ReadWrite
-        )
-        $matches = $store.Certificates.Find(
-            [System.Security.Cryptography.X509Certificates.X509FindType]::FindByThumbprint,
-            $thumb,
-            $false
-        )
-        foreach ($item in $matches) {
-            $store.Remove($item)
-            $item.Dispose()
-        }
-        if ($matches.Count -gt 0) {
-            Write-Host "Removed CI-imported SHIBLI public root from CurrentUser Root store"
-        }
-    } catch {
-        Write-Host "Could not remove CI-imported root from CurrentUser Root store; temporary files are still deleted."
+        $null = Resolve-ShibliRootCertPath
+        $rootCert = Get-ShibliPublicRootCertificate
     } finally {
-        if ($null -ne $store) {
-            $store.Close()
-            $store.Dispose()
+        if ($null -ne $rootCert) {
+            $rootCert.Dispose()
         }
     }
 }
 
 function Clear-ShibliSignMaterial {
-    Remove-ShibliInternalRootFromCurrentUserStore
     $candidates = @(
         [string]$env:SHIBLI_SIGN_PFX,
         [string]$env:SHIBLI_SIGN_ROOT_CERT_PATH,
@@ -280,27 +240,62 @@ function Invoke-ShibliAuthenticode {
     Assert-ShibliAuthenticode -Path $Path
 }
 
+function Test-ShibliCodeSigningEku {
+    param(
+        [Parameter(Mandatory = $true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate
+    )
+    foreach ($ext in $Certificate.Extensions) {
+        if ($ext.Oid.Value -ne "2.5.29.37") {
+            continue
+        }
+        $eku = [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]$ext
+        foreach ($oid in $eku.EnhancedKeyUsages) {
+            if ($oid.Value -eq $script:ShibliCodeSigningEkuOid) {
+                return
+            }
+        }
+    }
+    throw "Signer certificate EKU does not permit Code Signing."
+}
+
 function Test-ShibliChainsToInternalRoot {
     param(
         [Parameter(Mandatory = $true)]
         [System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate
     )
-    $rootCn = $script:ShibliInternalRootCn
-    if ($Certificate.Issuer -like "*$rootCn*") {
-        return
-    }
-    $chain = New-Object System.Security.Cryptography.X509Certificates.X509Chain
-    $chain.ChainPolicy.RevocationMode = [System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
-    [void]$chain.Build($Certificate)
-    foreach ($element in $chain.ChainElements) {
-        if ($element.Certificate.Subject -like "*$rootCn*") {
-            return
+    $rootCert = $null
+    $chain = $null
+    try {
+        $rootCert = Get-ShibliPublicRootCertificate
+        $chain = [System.Security.Cryptography.X509Certificates.X509Chain]::new()
+        $chain.ChainPolicy.TrustMode = [System.Security.Cryptography.X509Certificates.X509ChainTrustMode]::CustomRootTrust
+        $customTrust = $chain.ChainPolicy.CustomTrustStore
+        $customTrust.Add($rootCert)
+        $chain.ChainPolicy.RevocationMode = [System.Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+        $built = $chain.Build($Certificate)
+        if (-not $built) {
+            throw "CustomRootTrust chain.Build returned false for the Authenticode signer."
         }
-        if ($element.Certificate.Issuer -like "*$rootCn*") {
-            return
+        $chainRoot = $chain.ChainElements[$chain.ChainElements.Count - 1].Certificate
+        if ($chainRoot.Thumbprint -ne $rootCert.Thumbprint) {
+            throw "Chain root thumbprint does not match the supplied SHIBLI public root."
+        }
+        if ($chainRoot.Subject -notlike "*$($script:ShibliInternalRootCn)*") {
+            throw "Chain root subject is not CN=$($script:ShibliInternalRootCn)."
+        }
+        if ($Certificate.Subject -notlike "*$($script:ShibliCodeSigningCn)*") {
+            throw "Signer certificate is not CN=$($script:ShibliCodeSigningCn)."
+        }
+        Test-ShibliCodeSigningEku -Certificate $Certificate
+    } finally {
+        if ($null -ne $chain) {
+            $chain.Dispose()
+        }
+        if ($null -ne $rootCert) {
+            $rootCert.Dispose()
         }
     }
-    throw "Signing certificate does not chain to $rootCn."
 }
 
 function Assert-ShibliAuthenticode {
@@ -312,15 +307,15 @@ function Assert-ShibliAuthenticode {
         return
     }
     $sig = Get-AuthenticodeSignature -FilePath $Path
-    if ($sig.Status -ne "Valid") {
-        throw "Authenticode verification failed for $Path (status=$($sig.Status) $($sig.StatusMessage))"
+    if ($null -eq $sig.SignerCertificate) {
+        throw "Authenticode verification failed for $Path (SignerCertificate is null)."
     }
-    if (-not $sig.SignerCertificate) {
-        throw "Authenticode signature on $Path has no signer certificate"
+    if ($sig.Status -eq "NotSigned") {
+        throw "Authenticode verification failed for $Path (NotSigned)."
+    }
+    if ($sig.Status -eq "HashMismatch") {
+        throw "Authenticode verification failed for $Path (HashMismatch)."
     }
     Test-ShibliChainsToInternalRoot -Certificate $sig.SignerCertificate
-    if ($sig.SignerCertificate.Subject -notlike "*$($script:ShibliCodeSigningCn)*") {
-        throw "Signer certificate is not CN=$($script:ShibliCodeSigningCn)."
-    }
-    Write-Host "Verified Authenticode signature on $Path (Status=Valid; chains to $($script:ShibliInternalRootCn))"
+    Write-Host "Verified Authenticode signature on $Path (custom-root chain; Windows Status=$($sig.Status) is not required to be Valid)."
 }
