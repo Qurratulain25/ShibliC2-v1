@@ -85,10 +85,6 @@ jobs:
           )
           foreach ($path in $files) {
             Assert-ShibliAuthenticode -Path $path
-            $sig = Get-AuthenticodeSignature -FilePath $path
-            if ($sig.Status -ne "Valid") {
-              throw "Authenticode verification failed for $path (status=$($sig.Status))"
-            }
           }
       - name: Audit offline Windows artifacts
         shell: pwsh

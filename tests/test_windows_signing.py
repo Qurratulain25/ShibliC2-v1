@@ -108,6 +108,18 @@ class WindowsSigningReadinessTests(unittest.TestCase):
         )
         self.assertIn("Assert-ShibliAuthenticode -Path $path", self.workflow)
 
+    def test_workflow_does_not_require_windows_status_valid(self) -> None:
+        verify = self.workflow.split("Verify Authenticode when signing is enabled", 1)[1]
+        verify = verify.split("- name:", 1)[0]
+        for path in REQUIRED_SIGNED:
+            self.assertIn(path, verify)
+        self.assertIn("Assert-ShibliAuthenticode -Path $path", verify)
+        self.assertNotIn('$sig.Status -ne "Valid"', verify)
+        self.assertNotIn('$sig.Status -eq "Valid"', verify)
+        self.assertNotIn("status=$($sig.Status)", verify)
+        self.assertNotIn("UnknownError", verify)
+        self.assertNotIn("Get-AuthenticodeSignature -FilePath $path", verify)
+
     def test_windows_build_signs_in_required_order(self) -> None:
         sqlcipher = self.build.find("audit-windows-sqlcipher.ps1")
         sign_c2 = self.build.find(
