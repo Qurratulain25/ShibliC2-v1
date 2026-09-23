@@ -36,47 +36,33 @@ def _sanitize_environ() -> None:
             os.environ[key] = cleaned
 
 
-def reset_bootstrap_state() -> None:
-    """Test helper — allow bootstrap_environment to run again."""
-    global _BOOTSTRAPPED
-    _BOOTSTRAPPED = False
-
-
-def bootstrap_completed() -> bool:
-    return _BOOTSTRAPPED
-
-
 def bootstrap_environment(project_root: Path | None = None) -> None:
     """Load .env files once and strip Windows CRLF artifacts from values."""
     global _BOOTSTRAPPED
     if _BOOTSTRAPPED:
         return
+    _BOOTSTRAPPED = True
 
     from .paths import data_dir, env_path, project_root as _root
 
     if project_root is None:
         project_root = _root()
 
-    try:
-        runtime_env = env_path()
-        candidates = [
-            runtime_env,
-            data_dir() / ".env",
-            project_root / "data" / ".env",
-            project_root / ".env",
-        ]
-        for path in candidates:
-            _normalize_env_file(path)
-            if path.is_file():
-                load_dotenv(path, override=False)
+    runtime_env = env_path()
+    candidates = [
+        runtime_env,
+        data_dir() / ".env",
+        project_root / "data" / ".env",
+        project_root / ".env",
+    ]
+    for path in candidates:
+        _normalize_env_file(path)
+        if path.is_file():
+            load_dotenv(path, override=False)
 
-        _sanitize_environ()
-        _ensure_production_secrets(runtime_env)
-        _sanitize_environ()
-    except Exception:
-        _BOOTSTRAPPED = False
-        raise
-    _BOOTSTRAPPED = True
+    _sanitize_environ()
+    _ensure_production_secrets(runtime_env)
+    _sanitize_environ()
 
 
 def _upsert_env_line(path: Path, name: str, value: str) -> None:
@@ -103,27 +89,19 @@ def _ensure_production_secrets(env_file: Path) -> None:
     if not (is_frozen() or install_layout() == "system"):
         return
     os.environ.setdefault("SHIBLI_ENV", "production")
-    if (os.getenv("SHIBLI_ENV") or "").strip().lower() not in ("production", "prod"):
-        return
-
-    db = data_dir() / "shibli_c2.db"
-    key = (os.getenv("SHIBLI_DB_KEY") or "").strip()
-    has_db = db.exists() and db.stat().st_size > 0
-    if has_db and (not env_file.is_file() or key.lower() in _PLACEHOLDER_DB_KEYS):
-        raise RuntimeError(
-            "Encrypted database exists but data/.env is missing or SHIBLI_DB_KEY is unset. "
-            "Restore the original data/.env. Refusing to generate a new database key."
-        )
-
-    if not (os.getenv("SHIBLI_JWT_SECRET") or os.getenv("JWT_SECRET") or "").strip():
-        secret = secrets.token_hex(32)
-        _upsert_env_line(env_file, "SHIBLI_JWT_SECRET", secret)
-        os.environ["SHIBLI_JWT_SECRET"] = secret
-    if key.lower() in _PLACEHOLDER_DB_KEYS and not has_db:
-        key = secrets.token_hex(32)
-        _upsert_env_line(env_file, "SHIBLI_DB_KEY", key)
-        os.environ["SHIBLI_DB_KEY"] = key
-    _upsert_env_line(env_file, "SHIBLI_ENV", os.environ.get("SHIBLI_ENV", "production"))
+    if (os.getenv("SHIBLI_ENV") or "").strip().lower() in ("production", "prod"):
+        if not (os.getenv("SHIBLI_JWT_SECRET") or os.getenv("JWT_SECRET") or "").strip():
+            secret = secrets.token_hex(32)
+            _upsert_env_line(env_file, "SHIBLI_JWT_SECRET", secret)
+            os.environ["SHIBLI_JWT_SECRET"] = secret
+        db = data_dir() / "shibli_c2.db"
+        key = (os.getenv("SHIBLI_DB_KEY") or "").strip()
+        has_db = db.exists() and db.stat().st_size > 0
+        if key.lower() in _PLACEHOLDER_DB_KEYS and not has_db:
+            key = secrets.token_hex(32)
+            _upsert_env_line(env_file, "SHIBLI_DB_KEY", key)
+            os.environ["SHIBLI_DB_KEY"] = key
+        _upsert_env_line(env_file, "SHIBLI_ENV", os.environ.get("SHIBLI_ENV", "production"))
 
 
 def env_str(name: str, default: str = "") -> str:

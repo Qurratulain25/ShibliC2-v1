@@ -1819,3 +1819,2001 @@ button.full { width: 100%; min-height: 42px; font-weight: 700; }
 .recording-player { width: calc(100% - 32px); margin: 0 16px 12px; max-height: 320px; border-radius: var(--radius); background: #000; }
 input.wide { width: 100%; }
 .code-inline { display: block; margin-top: 6px; font-size: 11px; word-break: break-all; }
+
+/* =========================================================
+   SHIBLI C2 LOGIN REDESIGN — 2026-09-22
+   Scoped to #loginScreen so application pages are untouched.
+   ========================================================= */
+
+#loginScreen.login-screen {
+  position: relative;
+  isolation: isolate;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+
+  color: #e8eef4;
+
+  background:
+    radial-gradient(circle at 50% 36%,
+      rgba(59, 158, 255, 0.11) 0%,
+      rgba(59, 158, 255, 0.045) 22%,
+      transparent 48%),
+    radial-gradient(circle at 12% 90%,
+      rgba(61, 214, 140, 0.045),
+      transparent 34%),
+    linear-gradient(180deg, #070b10 0%, #06090c 58%, #040609 100%);
+}
+
+/* Subtle technical grid — intentionally restrained. */
+#loginScreen.login-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+
+  background-image:
+    linear-gradient(rgba(59, 158, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 158, 255, 0.025) 1px, transparent 1px);
+
+  background-size: 42px 42px;
+  opacity: 0.36;
+
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(0, 0, 0, 0.7) 24%,
+    rgba(0, 0, 0, 0.55) 75%,
+    transparent
+  );
+}
+
+/* Soft C2 focal glow behind card. */
+#loginScreen.login-screen::after {
+  content: "";
+  position: absolute;
+  width: 720px;
+  height: 420px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -48%);
+  z-index: -1;
+  pointer-events: none;
+
+  background: radial-gradient(
+    ellipse at center,
+    rgba(59, 158, 255, 0.08),
+    transparent 68%
+  );
+
+  filter: blur(14px);
+}
+
+/* Ensure hidden login/reset forms stay truly hidden. */
+#loginScreen .login-card.hidden {
+  display: none !important;
+}
+
+/* Main login / reset card */
+#loginScreen .login-card {
+  width: min(420px, calc(100vw - 40px));
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  padding: 34px 34px 26px;
+
+  border: 1px solid rgba(95, 164, 220, 0.20);
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(17, 24, 32, 0.98),
+      rgba(10, 16, 22, 0.985)
+    );
+
+  box-shadow:
+    0 28px 70px rgba(0, 0, 0, 0.52),
+    0 0 0 1px rgba(255, 255, 255, 0.018),
+    0 0 38px rgba(59, 158, 255, 0.045);
+
+  position: relative;
+  overflow: hidden;
+}
+
+/* Thin SHIBLI blue accent line */
+#loginScreen .login-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18%;
+  right: 18%;
+  height: 1px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 158, 255, 0.8),
+    transparent
+  );
+
+  box-shadow: 0 0 14px rgba(59, 158, 255, 0.30);
+}
+
+/* Logo */
+#loginScreen .login-card .brand-logo.lg {
+  display: block;
+  width: 74px;
+  height: 74px;
+  margin: 0 auto 1px;
+  object-fit: contain;
+
+  filter:
+    drop-shadow(0 0 10px rgba(59, 158, 255, 0.18))
+    drop-shadow(0 8px 18px rgba(0, 0, 0, 0.28));
+}
+
+/* Main title */
+#loginScreen .login-card h1 {
+  margin: 0;
+  padding: 0;
+
+  text-align: center;
+
+  color: #f2f7fb;
+  font-size: 26px;
+  line-height: 1.1;
+  font-weight: 750;
+  letter-spacing: 0.045em;
+}
+
+/* COMMAND & CONTROL */
+#loginScreen .login-brand-subtitle {
+  margin: -7px 0 8px;
+
+  text-align: center;
+
+  color: #6f8498;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+}
+
+/* Reset-password explanatory subtitle */
+#loginScreen .login-sub {
+  margin: -5px 0 5px;
+  text-align: center;
+
+  color: #77899b;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Labels */
+#loginScreen .login-card label,
+#loginScreen .mode-label {
+  color: #8fa1b2;
+
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+#loginScreen .login-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+/* Text fields */
+#loginScreen .login-card input {
+  width: 100%;
+  min-height: 46px;
+
+  padding: 0 14px;
+
+  border: 1px solid rgba(126, 154, 179, 0.22);
+  border-radius: 8px;
+
+  outline: none;
+
+  color: #edf5fb;
+  caret-color: #3b9eff;
+
+  background: #090f15;
+
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.36),
+    0 0 0 0 rgba(59, 158, 255, 0);
+
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+#loginScreen .login-card input::placeholder {
+  color: #526272;
+  opacity: 1;
+}
+
+#loginScreen .login-card input:hover {
+  border-color: rgba(126, 175, 215, 0.34);
+}
+
+#loginScreen .login-card input:focus {
+  border-color: rgba(59, 158, 255, 0.75);
+  background: #0b1219;
+
+  box-shadow:
+    0 0 0 3px rgba(59, 158, 255, 0.10),
+    inset 0 1px 2px rgba(0, 0, 0, 0.28);
+}
+
+/* Password field */
+#loginScreen .password-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 8px;
+  align-items: center;
+}
+
+#loginScreen .password-row input {
+  min-width: 0;
+}
+
+#loginScreen .pw-toggle {
+  width: 44px;
+  min-width: 44px;
+  height: 46px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(126, 154, 179, 0.20);
+  border-radius: 8px;
+
+  background: #0a1117;
+  color: #9ab0c3;
+}
+
+#loginScreen .pw-toggle:hover {
+  border-color: rgba(59, 158, 255, 0.45);
+  color: #d9ecff;
+  background: rgba(59, 158, 255, 0.08);
+}
+
+/* Connection mode */
+#loginScreen .connection-mode-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 1px;
+}
+
+#loginScreen .mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+
+  min-height: 44px;
+
+  border: 1px solid rgba(126, 154, 179, 0.22);
+  border-radius: 8px;
+
+  background: #090f15;
+}
+
+#loginScreen .mode-toggle button {
+  position: relative;
+
+  min-height: 44px;
+
+  border: 0;
+  border-radius: 0;
+
+  background: transparent;
+  color: #687a8b;
+
+  font-size: 12px;
+  font-weight: 720;
+
+  transition:
+    color 140ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+#loginScreen .mode-toggle button + button {
+  border-left: 1px solid rgba(126, 154, 179, 0.18);
+}
+
+#loginScreen .mode-toggle button:hover {
+  color: #b7cad9;
+  background: rgba(59, 158, 255, 0.04);
+}
+
+#loginScreen .mode-toggle button.active {
+  color: #eaf5ff;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(59, 158, 255, 0.22),
+      rgba(59, 158, 255, 0.11)
+    );
+
+  box-shadow:
+    inset 0 -2px 0 #3b9eff,
+    inset 0 0 20px rgba(59, 158, 255, 0.035);
+}
+
+/* Login/reset button */
+#loginScreen .login-card button.primary.full {
+  width: 100%;
+  min-height: 46px;
+
+  margin-top: 1px;
+
+  border: 1px solid rgba(59, 158, 255, 0.72);
+  border-radius: 8px;
+
+  background:
+    linear-gradient(180deg, #258cf0 0%, #1877d1 100%);
+
+  color: white;
+
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+
+  box-shadow:
+    0 8px 24px rgba(15, 95, 170, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+
+  transition:
+    transform 120ms ease,
+    background-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+#loginScreen .login-card button.primary.full:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  background:
+    linear-gradient(180deg, #329dff 0%, #1d82df 100%);
+
+  box-shadow:
+    0 10px 28px rgba(15, 95, 170, 0.27),
+    0 0 20px rgba(59, 158, 255, 0.08);
+}
+
+#loginScreen .login-card button.primary.full:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+#loginScreen .login-card button.primary.full:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
+/* Forgot/back link */
+#loginScreen .link-btn {
+  align-self: center;
+
+  min-height: 28px;
+  padding: 2px 8px;
+
+  border: 0;
+  background: transparent;
+
+  color: #7098ba;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#loginScreen .link-btn:hover {
+  color: #9dcfff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Errors */
+#loginScreen .login-error {
+  min-height: 17px;
+  margin: -3px 0 -2px;
+
+  color: #ff6f6f;
+
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+/* Version */
+#loginScreen .login-version {
+  margin: 2px 0 -3px;
+
+  text-align: center;
+
+  color: #405160;
+
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.15em;
+}
+
+/* Narrow displays */
+@media (max-width: 520px) {
+  #loginScreen.login-screen {
+    padding: 18px;
+  }
+
+  #loginScreen .login-card {
+    width: 100%;
+    padding: 28px 22px 22px;
+  }
+
+  #loginScreen .login-card .brand-logo.lg {
+    width: 64px;
+    height: 64px;
+  }
+
+  #loginScreen .login-card h1 {
+    font-size: 23px;
+  }
+}
+
+/* Short displays */
+@media (max-height: 700px) {
+  #loginScreen.login-screen {
+    padding: 14px;
+  }
+
+  #loginScreen .login-card {
+    gap: 11px;
+    padding-top: 22px;
+    padding-bottom: 18px;
+  }
+
+  #loginScreen .login-card .brand-logo.lg {
+    width: 58px;
+    height: 58px;
+  }
+
+  #loginScreen .login-card input,
+  #loginScreen .login-card button.primary.full {
+    min-height: 42px;
+  }
+
+  #loginScreen .mode-toggle,
+  #loginScreen .mode-toggle button {
+    min-height: 40px;
+  }
+}
+
+/* =========================================================
+   END SHIBLI C2 LOGIN REDESIGN
+   ========================================================= */
+
+/* =========================================================
+   SHIBLI C2 LOGIN — MOUNTAIN BACKGROUND FINAL
+   ========================================================= */
+
+#loginScreen.login-screen {
+  position: relative;
+  isolation: isolate;
+
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+
+  display: grid;
+  place-items: center;
+
+  padding: 32px 24px;
+  overflow: hidden;
+
+  background:
+    #04090f
+    url("/static/branding/loginbg.png")
+    center center / cover
+    no-repeat;
+}
+
+/*
+  Dark overlay keeps the interface readable,
+  but intentionally leaves the mountains visible.
+*/
+#loginScreen.login-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+
+  pointer-events: none;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(2, 7, 12, 0.18) 0%,
+      rgba(2, 7, 12, 0.05) 30%,
+      rgba(2, 7, 12, 0.05) 70%,
+      rgba(2, 7, 12, 0.20) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(2, 7, 12, 0.08) 0%,
+      rgba(2, 7, 12, 0.03) 55%,
+      rgba(2, 7, 12, 0.32) 100%
+    );
+
+  opacity: 1;
+  mask-image: none;
+  -webkit-mask-image: none;
+}
+
+/* Remove previous artificial grid/glow treatment */
+#loginScreen.login-screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+
+  width: auto;
+  height: auto;
+  left: 0;
+  top: 0;
+  transform: none;
+  filter: none;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      ellipse at center,
+      transparent 35%,
+      rgba(0, 0, 0, 0.12) 75%,
+      rgba(0, 0, 0, 0.30) 100%
+    );
+}
+
+/* ---------------------------------------------------------
+   LOGIN CARD
+   More solid than glassmorphism, but still lets the
+   mountain environment remain the dominant background.
+   --------------------------------------------------------- */
+
+#loginScreen .login-card {
+  width: min(430px, calc(100vw - 42px));
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  padding: 34px 34px 27px;
+
+  position: relative;
+  overflow: hidden;
+
+  border: 1px solid rgba(102, 165, 215, 0.30);
+  border-radius: 15px;
+
+  /*
+    Intentionally mostly opaque.
+    We do NOT want a highly transparent glass card.
+  */
+  background:
+    linear-gradient(
+      180deg,
+      rgba(11, 25, 38, 0.96) 0%,
+      rgba(7, 19, 30, 0.97) 100%
+    );
+
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.52),
+    0 0 0 1px rgba(255, 255, 255, 0.018),
+    0 0 34px rgba(28, 132, 219, 0.10);
+}
+
+/* Thin top blue accent */
+#loginScreen .login-card::before {
+  content: "";
+  position: absolute;
+
+  top: 0;
+  left: 14%;
+  right: 14%;
+
+  height: 1px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 158, 255, 0.92),
+    transparent
+  );
+
+  box-shadow: 0 0 12px rgba(59, 158, 255, 0.35);
+}
+
+/* ---------------------------------------------------------
+   BRAND
+   --------------------------------------------------------- */
+
+#loginScreen .login-card .brand-logo.lg {
+  width: 72px;
+  height: 72px;
+
+  margin: 0 auto 2px;
+
+  object-fit: contain;
+
+  filter:
+    drop-shadow(0 5px 10px rgba(0, 0, 0, 0.28))
+    drop-shadow(0 0 8px rgba(59, 158, 255, 0.14));
+}
+
+#loginScreen .login-card h1 {
+  margin: 0;
+
+  text-align: center;
+
+  color: #f4f8fb;
+
+  font-size: 27px;
+  line-height: 1.1;
+  font-weight: 760;
+
+  letter-spacing: 0.045em;
+}
+
+#loginScreen .login-brand-subtitle {
+  margin: -6px 0 9px;
+
+  text-align: center;
+
+  color: #8ba3b8;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 0.25em;
+}
+
+/* ---------------------------------------------------------
+   LABELS
+   --------------------------------------------------------- */
+
+#loginScreen .login-card label,
+#loginScreen .mode-label {
+  color: #a1b5c6;
+
+  font-size: 11px;
+  font-weight: 650;
+
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+#loginScreen .login-card label {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+/* ---------------------------------------------------------
+   INPUTS
+   --------------------------------------------------------- */
+
+#loginScreen .login-card input {
+  width: 100%;
+  min-height: 47px;
+
+  padding: 0 14px;
+
+  border: 1px solid rgba(111, 156, 193, 0.35);
+  border-radius: 8px;
+
+  outline: none;
+
+  background: rgba(4, 14, 23, 0.90);
+
+  color: #eef7ff;
+  caret-color: #3b9eff;
+
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.34);
+
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease;
+}
+
+#loginScreen .login-card input::placeholder {
+  color: #60778a;
+  opacity: 1;
+}
+
+#loginScreen .login-card input:hover {
+  border-color: rgba(93, 173, 237, 0.48);
+}
+
+#loginScreen .login-card input:focus {
+  border-color: rgba(59, 158, 255, 0.90);
+
+  background: rgba(6, 20, 31, 0.96);
+
+  box-shadow:
+    0 0 0 3px rgba(59, 158, 255, 0.11),
+    inset 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/*
+  IMPORTANT:
+  Chrome autofill was producing the yellow/olive background
+  visible in the previous screenshot.
+*/
+#loginScreen .login-card input:-webkit-autofill,
+#loginScreen .login-card input:-webkit-autofill:hover,
+#loginScreen .login-card input:-webkit-autofill:focus,
+#loginScreen .login-card input:-webkit-autofill:active {
+  -webkit-text-fill-color: #eef7ff !important;
+
+  -webkit-box-shadow:
+    0 0 0 1000px #07131e inset !important;
+
+  box-shadow:
+    0 0 0 1000px #07131e inset !important;
+
+  caret-color: #eef7ff;
+
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* ---------------------------------------------------------
+   PASSWORD
+   --------------------------------------------------------- */
+
+#loginScreen .password-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 46px;
+
+  gap: 8px;
+
+  align-items: center;
+}
+
+#loginScreen .password-row input {
+  min-width: 0;
+}
+
+#loginScreen .pw-toggle {
+  width: 46px;
+  min-width: 46px;
+  height: 47px;
+
+  display: grid;
+  place-items: center;
+
+  padding: 0;
+
+  border: 1px solid rgba(111, 156, 193, 0.30);
+  border-radius: 8px;
+
+  background: rgba(4, 14, 23, 0.90);
+
+  color: #93aabe;
+}
+
+#loginScreen .pw-toggle:hover {
+  border-color: rgba(59, 158, 255, 0.58);
+
+  color: #dff1ff;
+
+  background: rgba(59, 158, 255, 0.10);
+}
+
+/* ---------------------------------------------------------
+   CONNECTION MODE
+   --------------------------------------------------------- */
+
+#loginScreen .connection-mode-field {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+#loginScreen .mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  min-height: 46px;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(111, 156, 193, 0.30);
+  border-radius: 8px;
+
+  background: rgba(4, 14, 23, 0.91);
+}
+
+#loginScreen .mode-toggle button {
+  min-height: 46px;
+
+  border: 0;
+  border-radius: 0;
+
+  background: transparent;
+
+  color: #8298aa;
+
+  font-size: 12px;
+  font-weight: 750;
+}
+
+#loginScreen .mode-toggle button + button {
+  border-left: 1px solid rgba(111, 156, 193, 0.22);
+}
+
+#loginScreen .mode-toggle button:hover {
+  color: #c3d8e9;
+
+  background: rgba(59, 158, 255, 0.055);
+}
+
+#loginScreen .mode-toggle button.active {
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(32, 129, 212, 0.88),
+      rgba(19, 91, 155, 0.92)
+    );
+
+  box-shadow:
+    inset 0 0 18px rgba(59, 158, 255, 0.12);
+}
+
+/* ---------------------------------------------------------
+   LOGIN BUTTON
+   --------------------------------------------------------- */
+
+#loginScreen .login-card button.primary.full {
+  width: 100%;
+  min-height: 48px;
+
+  margin-top: 2px;
+
+  border: 1px solid rgba(74, 171, 250, 0.85);
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  background:
+    linear-gradient(
+      180deg,
+      #188fea 0%,
+      #0870c9 100%
+    );
+
+  font-size: 12px;
+  font-weight: 820;
+  letter-spacing: 0.085em;
+
+  box-shadow:
+    0 10px 26px rgba(0, 87, 161, 0.27),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+}
+
+#loginScreen .login-card button.primary.full:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  background:
+    linear-gradient(
+      180deg,
+      #27a0ff 0%,
+      #087ad9 100%
+    );
+
+  box-shadow:
+    0 12px 31px rgba(0, 93, 176, 0.32),
+    0 0 18px rgba(59, 158, 255, 0.12);
+}
+
+#loginScreen .login-card button.primary.full:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* ---------------------------------------------------------
+   SECONDARY LOGIN TEXT
+   --------------------------------------------------------- */
+
+#loginScreen .link-btn {
+  align-self: center;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #62b7f7;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+#loginScreen .link-btn:hover {
+  color: #9bd6ff;
+
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+#loginScreen .login-error {
+  min-height: 17px;
+  margin: -3px 0 -2px;
+
+  color: #ff6f6f;
+
+  font-size: 11px;
+}
+
+#loginScreen .login-version {
+  margin: 2px 0 -3px;
+
+  text-align: center;
+
+  color: #5e778a;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 0.15em;
+}
+
+/* ---------------------------------------------------------
+   RESET PASSWORD CARD
+   --------------------------------------------------------- */
+
+#loginScreen .login-sub {
+  margin: -4px 0 4px;
+
+  text-align: center;
+
+  color: #8499aa;
+
+  font-size: 12px;
+}
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  #loginScreen.login-screen {
+    padding: 18px;
+
+    background-position: 58% center;
+  }
+
+  #loginScreen .login-card {
+    width: 100%;
+
+    padding:
+      28px
+      22px
+      23px;
+  }
+}
+
+@media (max-height: 720px) {
+  #loginScreen.login-screen {
+    padding: 14px;
+  }
+
+  #loginScreen .login-card {
+    gap: 10px;
+
+    padding:
+      20px
+      30px
+      18px;
+  }
+
+  #loginScreen .login-card .brand-logo.lg {
+    width: 56px;
+    height: 56px;
+  }
+
+  #loginScreen .login-card h1 {
+    font-size: 23px;
+  }
+
+  #loginScreen .login-card input,
+  #loginScreen .pw-toggle,
+  #loginScreen .login-card button.primary.full {
+    min-height: 41px;
+    height: 41px;
+  }
+
+  #loginScreen .mode-toggle,
+  #loginScreen .mode-toggle button {
+    min-height: 40px;
+  }
+}
+
+/* =========================================================
+   END SHIBLI C2 MOUNTAIN LOGIN FINAL
+   ========================================================= */
+
+/* ===== FINAL LOGIN BACKGROUND OVERRIDE ===== */
+
+html body #loginScreen.login-screen {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  min-height: 100vh !important;
+
+  display: grid !important;
+  place-items: center !important;
+
+  background-color: #050b11 !important;
+  background-image:
+    linear-gradient(
+      rgba(2, 8, 14, 0.10),
+      rgba(2, 8, 14, 0.18)
+    ),
+    url("/static/branding/loginbg.png") !important;
+
+  background-size: cover !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+  background-attachment: fixed !important;
+}
+
+/* Remove any previous overlays hiding the image */
+html body #loginScreen.login-screen::before,
+html body #loginScreen.login-screen::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Keep card readable and mostly opaque */
+html body #loginScreen .login-card {
+  background: rgba(7, 20, 31, 0.96) !important;
+  border: 1px solid rgba(72, 151, 215, 0.38) !important;
+
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.56),
+    0 0 30px rgba(59, 158, 255, 0.08) !important;
+
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Fix Chrome autofill yellow/olive fields */
+html body #loginScreen input:-webkit-autofill,
+html body #loginScreen input:-webkit-autofill:hover,
+html body #loginScreen input:-webkit-autofill:focus,
+html body #loginScreen input:-webkit-autofill:active {
+  -webkit-text-fill-color: #eef7ff !important;
+  -webkit-box-shadow: 0 0 0 1000px #07131e inset !important;
+  box-shadow: 0 0 0 1000px #07131e inset !important;
+  caret-color: #eef7ff !important;
+}
+
+
+/* =========================================================
+   LOGIN BACKGROUND — SHOW ONLY ON LOGIN
+   ========================================================= */
+
+/* Authentication JS adds .hidden after successful login.
+   This MUST override all login-screen display rules. */
+html body #loginScreen.login-screen.hidden {
+  display: none !important;
+}
+
+/* Mountain background exists only while login is visible. */
+html body #loginScreen.login-screen:not(.hidden) {
+  display: grid !important;
+  position: fixed !important;
+  inset: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  background:
+    linear-gradient(
+      rgba(2, 8, 14, 0.10),
+      rgba(2, 8, 14, 0.18)
+    ),
+    url("/static/branding/loginbg.png")
+    center center / cover
+    no-repeat !important;
+}
+
+/* App itself keeps normal SHIBLI background */
+html body #appShell:not(.hidden) {
+  background: var(--bg) !important;
+}
+
+
+/* Login background dim adjustment */
+html body #loginScreen.login-screen:not(.hidden) {
+  background:
+    linear-gradient(
+      rgba(0, 0, 0, 0.42),
+      rgba(0, 0, 0, 0.52)
+    ),
+    url("/static/branding/loginbg.png")
+    center center / cover
+    no-repeat !important;
+}
+/* =========================================================
+   LIVE VIEW — TRACKING PANEL (single button toggle)
+   ========================================================= */
+
+.live-tracking-card {
+  flex-shrink: 0;
+}
+
+.live-tracking-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  min-width: 62px;
+  min-height: 20px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.tracking-switch-track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  flex: 0 0 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: #303945;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tracking-switch-knob {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  left: 2px;
+  top: 2px;
+  border-radius: 50%;
+  background: #c8d1db;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.live-tracking-toggle[aria-pressed="true"] .tracking-switch-track {
+  background: rgba(61, 214, 140, 0.28);
+  border-color: rgba(61, 214, 140, 0.65);
+}
+
+.live-tracking-toggle[aria-pressed="true"] .tracking-switch-knob {
+  transform: translateX(16px);
+  background: var(--green);
+}
+
+#liveTrackingToggleState {
+  min-width: 22px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.live-tracking-toggle[aria-pressed="true"] #liveTrackingToggleState {
+  color: var(--green);
+}
+
+.live-tracking-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+}
+
+.live-tracking-controls.hidden {
+  display: none !important;
+}
+
+.tracking-state-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--overlay-subtle);
+}
+
+.tracking-state-row > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tracking-state-row strong {
+  font-size: 10px;
+  color: var(--text);
+}
+
+.tracking-state-row small {
+  font-size: 9px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.tracking-state-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(61, 214, 140, 0.45);
+}
+
+.tracking-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.tracking-actions button {
+  min-height: 28px;
+  padding: 3px 6px;
+  font-size: 9px;
+}
+
+.tracking-actions #liveTrackingStart,
+.tracking-actions #liveTrackingStop {
+  grid-column: 1 / -1;
+}
+
+.tracking-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.tracking-targets {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.tracking-targets-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 7px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+#liveTrackingTargetCount {
+  min-width: 19px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  text-align: center;
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.tracking-target-list {
+  max-height: 90px;
+  overflow-y: auto;
+}
+
+.live-tracking-empty {
+  padding: 8px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.tracking-integration-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 8px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+/* Hide Live View hardware diagnostics; keep IDs for existing JS. */
+#hwOfflineNote,
+.hw-test-row,
+#hwSelfTestOut {
+  display: none !important;
+}
+
+/* Right rail: constrained height + internal vertical scroll. */
+#hardwareRail.hardware-rail {
+  align-self: stretch;
+  height: auto;
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-width: thin;
+}
+
+#hardwareRail > .hardware-panel,
+#hardwareRail > .control-card,
+#hardwareRail > .live-tracking-card {
+  flex: 0 0 auto;
+  min-height: 0;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+/* Cameras page — compact config console. Scoped to #page-cameras. */
+#page-cameras > .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px 6px;
+}
+#page-cameras .cam-page-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+#page-cameras .cam-page-title h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+#page-cameras .cam-page-title p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+#page-cameras .cam-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+#page-cameras .cam-controls-status {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 280px;
+  line-height: 1.3;
+}
+#page-cameras .page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 6px 12px 10px;
+}
+#page-cameras .camera-config-panel,
+#page-cameras .camera-table-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  min-width: 0;
+}
+#page-cameras .camera-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--line);
+}
+#page-cameras .camera-panel-head h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+#page-cameras .camera-panel-head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+#page-cameras .camera-form {
+  padding: 10px 12px 10px;
+}
+#page-cameras .camera-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+#page-cameras .camera-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  min-width: 0;
+}
+#page-cameras .camera-form-grid input,
+#page-cameras .camera-form-grid select {
+  width: 100%;
+  min-height: 28px;
+  font-size: 12px;
+  text-transform: none;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+#page-cameras .camera-enable-field .camera-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+#page-cameras .camera-toggle {
+  position: relative;
+}
+#page-cameras .camera-toggle input {
+  appearance: none;
+  width: 36px;
+  min-width: 36px;
+  min-height: 20px;
+  height: 20px;
+  margin: 0;
+  flex: 0 0 36px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--switch-track);
+  position: relative;
+  cursor: pointer;
+}
+#page-cameras .camera-toggle input::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #c7d2de;
+}
+#page-cameras .camera-toggle input:checked {
+  background: var(--green);
+  border-color: rgba(61, 214, 140, 0.55);
+}
+#page-cameras .camera-toggle input:checked::after {
+  left: 18px;
+  background: #06110c;
+}
+#page-cameras .camera-toggle-track {
+  display: none;
+}
+#page-cameras .camera-toggle-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#page-cameras .camera-toggle:has(input:checked) .camera-toggle-text {
+  color: var(--green);
+}
+#page-cameras .camera-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+#page-cameras .cam-test-result {
+  margin: 0;
+  min-height: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  flex: 1 1 auto;
+}
+#page-cameras .cam-test-result.is-ok { color: var(--green); }
+#page-cameras .cam-test-result.is-bad { color: var(--red); }
+#page-cameras .camera-form-footer .form-actions {
+  margin: 0;
+  justify-content: flex-end;
+}
+#page-cameras .camera-table-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+#page-cameras .camera-table-tools input[type="search"] {
+  width: 200px;
+  min-height: 28px;
+  font-size: 12px;
+}
+#page-cameras .camera-table-tools select {
+  min-height: 28px;
+  font-size: 12px;
+  max-width: 140px;
+}
+#page-cameras .empty-state {
+  margin: 8px 12px 0;
+  padding: 12px;
+}
+#page-cameras .camera-table-wrap {
+  overflow: auto;
+}
+#page-cameras .camera-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+#page-cameras .camera-table th,
+#page-cameras .camera-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#page-cameras .camera-table th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--table-head-bg);
+}
+#page-cameras .camera-table tbody tr:hover td {
+  background: var(--table-row-hover);
+}
+#page-cameras .camera-table tbody tr.is-disabled td {
+  opacity: 0.62;
+}
+#page-cameras .camera-table col.cam-col-name { width: 18%; }
+#page-cameras .camera-table th:nth-child(1),
+#page-cameras .camera-table td:nth-child(1) { width: 18%; }
+#page-cameras .camera-table th:nth-child(2),
+#page-cameras .camera-table td:nth-child(2) { width: 12%; }
+#page-cameras .camera-table th:nth-child(3),
+#page-cameras .camera-table td:nth-child(3) { width: 14%; }
+#page-cameras .camera-table th:nth-child(4),
+#page-cameras .camera-table td:nth-child(4) { width: 16%; }
+#page-cameras .camera-table th:nth-child(5),
+#page-cameras .camera-table td:nth-child(5) { width: 10%; }
+#page-cameras .camera-table th:nth-child(6),
+#page-cameras .camera-table td:nth-child(6) { width: 12%; }
+#page-cameras .camera-table th:nth-child(7),
+#page-cameras .camera-table td:nth-child(7) { width: 18%; white-space: nowrap; }
+#page-cameras .cam-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+#page-cameras .cam-name strong {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#page-cameras .cam-name span {
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#page-cameras .cam-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+#page-cameras .cam-type-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+#page-cameras .cam-type.is-day { color: var(--accent); }
+#page-cameras .cam-type.is-day .cam-type-dot { background: var(--accent); }
+#page-cameras .cam-type.is-thermal { color: var(--orange); }
+#page-cameras .cam-type.is-thermal .cam-type-dot { background: var(--orange); }
+#page-cameras .camera-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 8px 2px 6px;
+  color: var(--muted);
+}
+#page-cameras .camera-status-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+#page-cameras .camera-status-pill.is-online {
+  color: var(--green);
+  border-color: rgba(61, 214, 140, 0.4);
+  background: var(--green-dim);
+}
+#page-cameras .camera-status-pill.is-offline {
+  color: var(--red);
+  border-color: rgba(255, 92, 92, 0.4);
+  background: rgba(255, 92, 92, 0.1);
+}
+#page-cameras .camera-status-pill.is-disabled {
+  color: var(--muted);
+  background: var(--overlay-subtle);
+}
+#page-cameras .camera-status-pill.is-unknown {
+  color: var(--amber);
+  border-color: rgba(245, 185, 66, 0.4);
+  background: rgba(245, 185, 66, 0.1);
+}
+#page-cameras .camera-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+#page-cameras .camera-row-actions .mini {
+  min-height: 22px;
+  padding: 0 6px;
+}
+#page-cameras .cam-list-msg {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: normal;
+}
+@media (max-width: 1366px) {
+  #page-cameras .camera-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  #page-cameras .cam-controls-status {
+    max-width: 180px;
+  }
+  #page-cameras .camera-table th:nth-child(7),
+  #page-cameras .camera-table td:nth-child(7) {
+    width: 22%;
+  }
+}
+@media (max-width: 900px) {
+  #page-cameras .camera-form-grid {
+    grid-template-columns: 1fr;
+  }
+  #page-cameras .camera-panel-head {
+    flex-direction: column;
+  }
+  #page-cameras .camera-form-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* Recordings page — Login blue (#3b9eff / --accent). Scoped to #page-recordings. */
+#page-recordings > .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px 6px;
+}
+#page-recordings .rec-page-title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+#page-recordings .rec-page-title h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+#page-recordings .rec-page-title p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+#page-recordings .rec-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+#page-recordings .rec-controls-status {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 320px;
+  line-height: 1.3;
+}
+#page-recordings .page-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 6px 12px 10px;
+}
+#page-recordings .recordings-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+}
+#page-recordings .recordings-toolbar input[type="search"] {
+  flex: 1 1 220px;
+  min-width: 160px;
+  min-height: 28px;
+}
+#page-recordings .recordings-toolbar select,
+#page-recordings .recordings-toolbar input[type="date"] {
+  min-height: 28px;
+  font-size: 12px;
+  max-width: 160px;
+}
+#page-recordings .recordings-toolbar input:focus,
+#page-recordings .recordings-toolbar select:focus {
+  outline: none;
+  border-color: rgba(59, 158, 255, 0.75);
+  box-shadow: 0 0 0 3px rgba(59, 158, 255, 0.10);
+}
+#page-recordings .empty-state {
+  margin: 0;
+  padding: 16px 12px;
+}
+#page-recordings .rec-empty-title {
+  margin: 0 0 4px;
+  color: var(--text);
+  font-weight: 700;
+}
+#page-recordings .recordings-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  overflow: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+#page-recordings .recordings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  table-layout: fixed;
+}
+#page-recordings .recordings-table th,
+#page-recordings .recordings-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#page-recordings .recordings-table th {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--table-head-bg);
+}
+#page-recordings .recordings-table tbody tr:hover td {
+  background: var(--table-row-hover);
+}
+#page-recordings .recordings-table th:nth-child(1),
+#page-recordings .recordings-table td:nth-child(1) { width: 24%; }
+#page-recordings .recordings-table th:nth-child(2),
+#page-recordings .recordings-table td:nth-child(2) { width: 14%; }
+#page-recordings .recordings-table th:nth-child(3),
+#page-recordings .recordings-table td:nth-child(3) { width: 12%; }
+#page-recordings .recordings-table th:nth-child(4),
+#page-recordings .recordings-table td:nth-child(4) { width: 14%; }
+#page-recordings .recordings-table th:nth-child(5),
+#page-recordings .recordings-table td:nth-child(5) { width: 10%; }
+#page-recordings .recordings-table th:nth-child(6),
+#page-recordings .recordings-table td:nth-child(6) { width: 8%; }
+#page-recordings .recordings-table th:nth-child(7),
+#page-recordings .recordings-table td:nth-child(7) { width: 18%; white-space: nowrap; }
+#page-recordings .rec-name,
+#page-recordings .rec-stamp {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+#page-recordings .rec-name strong,
+#page-recordings .rec-stamp strong {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#page-recordings .rec-name span,
+#page-recordings .rec-stamp span {
+  font-size: 10px;
+  color: var(--muted);
+}
+#page-recordings .rec-channel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+#page-recordings .rec-channel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+#page-recordings .rec-channel.is-day { color: var(--accent); }
+#page-recordings .rec-channel.is-day .rec-channel-dot { background: var(--accent); }
+#page-recordings .rec-channel.is-thermal { color: #7eb8ff; }
+#page-recordings .rec-channel.is-thermal .rec-channel-dot { background: #7eb8ff; }
+#page-recordings .rec-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+#page-recordings .rec-row-actions .mini {
+  min-height: 22px;
+  padding: 0 6px;
+}
+#page-recordings .rec-action-play {
+  background: var(--accent-dim);
+  border-color: rgba(59, 158, 255, 0.55);
+  color: var(--button-primary-text);
+}
+#page-recordings .rec-action-play:hover {
+  border-color: rgba(59, 158, 255, 0.8);
+  background: rgba(59, 158, 255, 0.22);
+}
+#page-recordings .rec-action-export {
+  border-color: rgba(59, 158, 255, 0.28);
+  color: var(--accent);
+}
+#page-recordings .rec-list-msg {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: normal;
+}
+#page-recordings .recordings-pager-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 2px 2px 0;
+}
+#page-recordings #recordingsRange {
+  font-size: 11px;
+  color: var(--muted);
+}
+#page-recordings .recordings-pager {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+#page-recordings #recordingsPager {
+  display: inline-flex;
+  gap: 4px;
+}
+#page-recordings .rec-page-btn.is-active {
+  background: var(--accent-dim);
+  border-color: rgba(59, 158, 255, 0.55);
+  color: var(--accent);
+  font-weight: 700;
+}
+@media (max-width: 1366px) {
+  #page-recordings .recordings-table th:nth-child(7),
+  #page-recordings .recordings-table td:nth-child(7) { width: 22%; }
+  #page-recordings .rec-controls-status { max-width: 200px; }
+}
+@media (max-width: 900px) {
+  #page-recordings .recordings-toolbar select,
+  #page-recordings .recordings-toolbar input[type="date"] {
+    max-width: none;
+    flex: 1 1 140px;
+  }
+}
+
+/* Recording player — Login navy/blue, does not affect Live View. */
+#recordingPlayerDialog.recording-modal {
+  width: min(960px, 94vw);
+  padding: 0;
+  background: #111820;
+  color: #e8eef4;
+  border: 1px solid rgba(59, 158, 255, 0.22);
+}
+#recordingPlayerDialog .recording-modal-head {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+#recordingPlayerDialog .recording-modal-head strong {
+  font-size: 14px;
+  color: #e8eef4;
+}
+#recordingPlayerDialog .rec-meta {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #8b9aab;
+}
+#recordingPlayerDialog .recording-player {
+  width: calc(100% - 24px);
+  margin: 10px 12px;
+  max-height: 58vh;
+  border-radius: 8px;
+  background: #05080b;
+}
+#recordingPlayerDialog .rec-unavailable {
+  margin: 24px 16px;
+  color: #8b9aab;
+}
+#recordingPlayerDialog .recording-modal-actions {
+  padding: 8px 12px 12px;
+}
+#recordingPlayerDialog #recPlayerExport {
+  border-color: rgba(59, 158, 255, 0.35);
+  color: #3b9eff;
+}
+#recordingPlayerDialog #recPlayerClose:hover {
+  border-color: rgba(59, 158, 255, 0.55);
+}

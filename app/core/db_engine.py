@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import sys
+import sqlite3 as std_sqlite3
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Tuple
@@ -13,63 +13,22 @@ logger = logging.getLogger(__name__)
 
 _IMPORT_ERROR: Exception | None = None
 
-
-def _prepare_sqlcipher_dll_search() -> None:
-    """Windows frozen loads: prefer sqlcipher3's directory before stdlib sqlite3.dll."""
-    if os.name != "nt":
-        return
-    folders: list[Path] = []
-    if getattr(sys, "frozen", False):
-        meipass = Path(getattr(sys, "_MEIPASS", Path(sys.executable).resolve().parent))
-        exe_dir = Path(sys.executable).resolve().parent
-        folders.extend(
-            [
-                meipass / "sqlcipher3",
-                meipass,
-                exe_dir / "_internal" / "sqlcipher3",
-                exe_dir / "_internal",
-                exe_dir,
-            ]
-        )
-    existing = [str(folder) for folder in folders if folder.is_dir()]
-    if existing:
-        os.environ["PATH"] = os.pathsep.join(existing) + os.pathsep + os.environ.get("PATH", "")
-    if hasattr(os, "add_dll_directory"):
-        for folder in existing:
-            try:
-                os.add_dll_directory(folder)
-            except OSError:
-                pass
-
-
-_prepare_sqlcipher_dll_search()
-
 try:
     import sqlcipher3.dbapi2 as sqlite3  # type: ignore
 
     SQLCIPHER_AVAILABLE = True
-except Exception as exc:  # ImportError, OSError / DLL load failure on Windows
+except ImportError as exc:
+    sqlite3 = std_sqlite3  # type: ignore
     SQLCIPHER_AVAILABLE = False
     _IMPORT_ERROR = exc
-    sqlite3 = None  # type: ignore
-
-import sqlite3 as std_sqlite3
-
-if sqlite3 is None:
-    sqlite3 = std_sqlite3  # type: ignore
 
 
 def require_sqlcipher() -> None:
-    if SQLCIPHER_AVAILABLE:
-        return
-    detail = ""
-    if _IMPORT_ERROR is not None:
-        detail = f"{type(_IMPORT_ERROR).__name__}: {_IMPORT_ERROR}"
-        logger.error("SQLCipher failed to load: %s", detail)
-    raise RuntimeError(
-        "SQLCipher failed to load. SHIBLI C2 cannot open the encrypted database."
-        + (f" ({detail})" if detail else "")
-    ) from _IMPORT_ERROR
+    if not SQLCIPHER_AVAILABLE:
+        raise RuntimeError(
+            "sqlcipher3 is required for SHIBLI C2. "
+            "Run: pip install sqlcipher3"
+        ) from _IMPORT_ERROR
 
 
 def db_key() -> str:

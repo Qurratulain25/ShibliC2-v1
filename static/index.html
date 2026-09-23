@@ -13,7 +13,7 @@
     })();
   </script>
   <link rel="icon" href="/static/branding/logo.png" type="image/png" />
-  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="stylesheet" href="/static/css/styles.css?v=20260922-recordings" />
   <style>
     /* Fallback if stylesheet path fails — keeps login usable */
     .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #06090c; color: #e8eef4; font-family: "Segoe UI", system-ui, sans-serif; }
@@ -46,10 +46,11 @@
     <form id="loginForm" class="login-card">
       <img class="brand-logo lg" src="/static/branding/logo.png" alt="SHIBLI" width="64" height="64" />
       <h1 id="loginTitle">SHIBLI C2</h1>
-      <label>Username<input id="loginUser" type="text" autocomplete="off" required /></label>
+      <p class="login-brand-subtitle">COMMAND &amp; CONTROL</p>
+      <label>Username<input id="loginUser" type="text" autocomplete="off" placeholder="Enter username" required /></label>
       <label>Password
         <span class="password-row">
-          <input id="loginPass" type="password" autocomplete="current-password" required />
+          <input id="loginPass" type="password" autocomplete="current-password" placeholder="Enter password" required />
           <button type="button" class="icon-action pw-toggle" data-password-toggle="loginPass" aria-label="Show password"></button>
         </span>
       </label>
@@ -254,7 +255,7 @@
           </div>
           <aside class="control-rail hardware-rail" id="hardwareRail">
             <article class="panel control-card hardware-panel">
-              <header class="panel-title compact">Hardware Controls</header>
+              <header class="panel-title compact">PTZ Control</header>
               <p id="hwOfflineNote" class="hw-offline-note hidden">Hardware controls offline — start the controls service or check camera mapping.</p>
               <div class="hw-test-row">
                 <button type="button" id="hwSelfTestBtn" class="mini">Self-test</button>
@@ -291,6 +292,101 @@
                 <div class="mode-toggle"><button class="active" data-mode="abs">ABS</button><button data-mode="rel">REL</button></div>
                 <button type="button" id="autoPanBtn" class="mini auto-pan-btn" title="Auto-pan patrol">Auto-pan</button>
               </div>
+              <section class="panel control-card live-tracking-card" id="liveTrackingCard">
+                <header class="panel-title compact">
+                  <span>Tracking</span>
+                  <button
+                    type="button"
+                    id="liveTrackingToggle"
+                    class="live-tracking-toggle"
+                    aria-pressed="false"
+                    aria-expanded="false"
+                    aria-controls="liveTrackingControls"
+                  >
+                    <span class="tracking-switch-track">
+                      <span class="tracking-switch-knob"></span>
+                    </span>
+                    <span id="liveTrackingToggleState">OFF</span>
+                  </button>
+                </header>
+                <div
+                  id="liveTrackingControls"
+                  class="live-tracking-controls hidden"
+                  aria-hidden="true"
+                >
+    <div class="tracking-state-row">
+      <span class="tracking-state-dot"></span>
+
+      <div>
+        <strong id="liveTrackingStatus">Tracking Ready</strong>
+        <small id="liveTrackingSubstatus">
+          Live tracking integration pending
+        </small>
+      </div>
+    </div>
+
+    <div class="tracking-actions">
+      <button
+        type="button"
+        id="liveTrackingStart"
+        class="primary"
+        disabled
+      >
+        Start Tracking
+      </button>
+
+      <button
+        type="button"
+        id="liveTrackingSelect"
+        disabled
+      >
+        Select Target
+      </button>
+
+      <button
+        type="button"
+        id="liveTrackingFollow"
+        disabled
+      >
+        Follow Target
+      </button>
+
+      <button
+        type="button"
+        id="liveTrackingStopFollow"
+        disabled
+      >
+        Stop Follow
+      </button>
+
+      <button
+        type="button"
+        id="liveTrackingStop"
+        class="danger"
+        disabled
+      >
+        Stop Tracking
+      </button>
+    </div>
+
+    <div class="tracking-targets">
+      <div class="tracking-targets-header">
+        <span>Active Targets</span>
+        <span id="liveTrackingTargetCount">0</span>
+      </div>
+
+      <div id="liveTrackingTargetList" class="tracking-target-list">
+        <div class="live-tracking-empty">
+          No targets detected
+        </div>
+      </div>
+    </div>
+
+    <p class="tracking-integration-note">
+      Controls will activate when live camera tracking is connected.
+    </p>
+                </div>
+              </section>
               <div class="hw-osd-row">
                 <span class="hw-row-label">OSD</span>
                 <label class="switch small"><input id="osdToggle" type="checkbox" /><span></span></label>
@@ -367,99 +463,188 @@
       <!-- PAGE: RECORDINGS -->
       <section id="page-recordings" class="page-view hidden page-admin">
         <div class="page-header compact">
-          <h2>Recordings</h2>
-          <p id="recordingsStats">—</p>
+          <div class="rec-page-title">
+            <h2>Recordings</h2>
+            <p>Review, search and manage recorded surveillance footage.</p>
+          </div>
+          <div class="rec-page-actions">
+            <p id="recordingsStats" class="rec-controls-status">—</p>
+            <button type="button" id="recRefresh" class="mini">Refresh</button>
+          </div>
         </div>
         <div class="page-body">
-        <div class="toolbar">
-          <input id="recSearch" type="search" placeholder="Search name, camera, type…" />
-          <select id="recSort">
-            <option value="date_desc">Newest first</option>
-            <option value="date_asc">Oldest first</option>
-            <option value="name_asc">Name A–Z</option>
-            <option value="name_desc">Name Z–A</option>
-            <option value="camera_asc">Camera</option>
-            <option value="size_desc">Size</option>
-            <option value="duration_desc">Duration</option>
-          </select>
-          <select id="recPageSize">
-            <option value="10">10 / page</option>
-            <option value="20" selected>20 / page</option>
-            <option value="50">50 / page</option>
-            <option value="100">100 / page</option>
-          </select>
-          <button type="button" id="recPrev" class="mini">Prev</button>
-          <span id="recordingsPager">Page 1</span>
-          <button type="button" id="recNext" class="mini">Next</button>
-        </div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Name</th><th>Camera</th><th>ID</th><th>Date</th><th>Time</th><th>Duration</th><th>Size</th><th>Type</th><th>By / Actions</th></tr></thead>
-            <tbody id="recordingsList"></tbody>
-          </table>
-        </div>
+          <div class="recordings-toolbar">
+            <input id="recSearch" type="search" placeholder="Search recordings..." autocomplete="off" />
+            <select id="recCameraFilter" aria-label="Filter by camera">
+              <option value="">All Cameras</option>
+            </select>
+            <select id="recChannelFilter" aria-label="Filter by channel">
+              <option value="">All Channels</option>
+              <option value="day">Day</option>
+              <option value="thermal">Thermal</option>
+            </select>
+            <input id="recDateFrom" type="date" aria-label="Filter by date" />
+            <select id="recSort" aria-label="Sort recordings">
+              <option value="date_desc">Newest first</option>
+              <option value="date_asc">Oldest first</option>
+              <option value="name_asc">Name A–Z</option>
+              <option value="name_desc">Name Z–A</option>
+              <option value="camera_asc">Camera</option>
+              <option value="size_desc">Size</option>
+              <option value="duration_desc">Duration</option>
+            </select>
+            <select id="recPageSize" aria-label="Rows per page">
+              <option value="10">10 / page</option>
+              <option value="20" selected>20 / page</option>
+              <option value="50">50 / page</option>
+              <option value="100">100 / page</option>
+            </select>
+            <button type="button" id="recClearFilters" class="mini">Clear Filters</button>
+          </div>
+          <div id="recordingsEmpty" class="empty-state hidden">
+            <p class="rec-empty-title">No recordings found</p>
+            <p id="recordingsEmptyDetail">Recorded surveillance footage will appear here.</p>
+            <button type="button" id="recEmptyClear" class="mini hidden">Clear Filters</button>
+          </div>
+          <div class="recordings-table-wrap">
+            <table class="recordings-table">
+              <thead>
+                <tr>
+                  <th>Recording</th>
+                  <th>Camera</th>
+                  <th>Channel</th>
+                  <th>Date / Time</th>
+                  <th>Duration</th>
+                  <th>Size</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="recordingsList"></tbody>
+            </table>
+          </div>
+          <div class="recordings-pager-bar">
+            <span id="recordingsRange">Showing 0–0 of 0 recordings</span>
+            <div class="recordings-pager">
+              <button type="button" id="recPrev" class="mini" aria-label="Previous page">‹</button>
+              <span id="recordingsPager">1</span>
+              <button type="button" id="recNext" class="mini" aria-label="Next page">›</button>
+            </div>
+          </div>
         </div>
       </section>
 
       <!-- PAGE: CAMERAS -->
       <section id="page-cameras" class="page-view hidden page-admin">
         <div class="page-header compact">
-          <h2>Cameras</h2>
-          <p id="controlsStatus">—</p>
-          <button type="button" id="syncCamerasBtn" class="mini">Sync Core → Controls</button>
-          <button type="button" id="startOnboardingBtn" class="primary mini">Add Camera Wizard</button>
+          <div class="cam-page-title">
+            <h2>Cameras</h2>
+            <p>Configure, monitor and manage all cameras connected to SHIBLI C2.</p>
+          </div>
+          <div class="cam-page-actions">
+            <p id="controlsStatus" class="cam-controls-status">—</p>
+            <button type="button" id="startOnboardingBtn" class="mini">Guided Setup</button>
+            <button type="button" id="syncCamerasBtn" class="mini">Sync to Controls</button>
+            <button type="button" id="addCameraBtn" class="primary mini">+ Add Camera</button>
+          </div>
         </div>
         <div class="page-body">
-          <div id="camerasEmpty" class="empty-state">
-            <p>No cameras configured yet.</p>
-            <button type="button" class="primary" id="startOnboardingEmpty">Start Add Camera Wizard</button>
-          </div>
-          <form id="cameraForm" class="form-card camera-form">
-            <h3 id="cameraFormTitle">Add Camera</h3>
-            <input type="hidden" id="cameraEditId" value="" />
-            <div class="form-grid">
-              <label>Camera name <input id="camName" required placeholder="Day Camera 01" /></label>
-              <label>Camera type
-                <select id="camType"><option>Day</option><option>Thermal</option><option>Other</option></select>
-              </label>
-              <label>Connection type
-                <select id="camConnectionMode">
-                  <option value="lan">LAN</option>
-                  <option value="ip">IP / Online</option>
-                  <option value="legacy" id="camModeLegacyOpt" hidden>Unassigned</option>
+          <section class="camera-config-panel">
+            <div class="camera-panel-head">
+              <h3 id="cameraFormTitle">Add Camera</h3>
+              <p>Configure camera connection settings and parameters.</p>
+            </div>
+            <form id="cameraForm" class="camera-form">
+              <input type="hidden" id="cameraEditId" value="" />
+              <div class="camera-form-grid">
+                <label>Camera Name <input id="camName" required placeholder="Camera name" /></label>
+                <label>Camera Type
+                  <select id="camType"><option>Day</option><option>Thermal</option><option>Other</option></select>
+                </label>
+                <label>Connection Type
+                  <select id="camConnectionMode">
+                    <option value="lan">LAN</option>
+                    <option value="ip">IP / Online</option>
+                    <option value="legacy" id="camModeLegacyOpt" hidden>Unassigned</option>
+                  </select>
+                </label>
+                <label>Camera Group <input id="camGroup" placeholder="Optional group" /></label>
+                <label>Host / IP <input id="camIp" placeholder="Host or IP address" /></label>
+                <label>RTSP URL <input id="camRtsp" placeholder="rtsp://host:554/stream" /></label>
+                <label>ONVIF Port <input id="camOnvif" type="number" value="80" min="1" max="65535" /></label>
+                <label class="camera-enable-field">Enable Camera
+                  <span class="camera-toggle">
+                    <input id="camEnabled" type="checkbox" checked />
+                    <span class="camera-toggle-track" aria-hidden="true"></span>
+                    <span id="camEnabledLabel" class="camera-toggle-text">Enabled</span>
+                  </span>
+                </label>
+                <label>Username <input id="camUser" autocomplete="off" /></label>
+                <label>Password
+                  <span class="password-row">
+                    <input id="camPass" type="password" autocomplete="new-password" />
+                    <button type="button" class="icon-action pw-toggle" data-password-toggle="camPass" aria-label="Show password"></button>
+                  </span>
+                </label>
+                <label>PTZ Mapping
+                  <select id="camPtz"><option value="none">No PTZ</option><option value="ptz-1">PTZ 1</option><option value="ptz-2">PTZ 2</option></select>
+                </label>
+              </div>
+              <div class="camera-form-footer">
+                <p id="cameraTestResult" class="cam-test-result"></p>
+                <div class="form-actions">
+                  <button type="button" id="testCameraBtn" class="mini">Test Connection</button>
+                  <button type="button" id="clearCameraForm" class="mini">Clear</button>
+                  <button type="submit" class="primary mini" id="saveCameraBtn">Save Camera</button>
+                </div>
+              </div>
+            </form>
+          </section>
+
+          <section class="camera-table-panel">
+            <div class="camera-panel-head">
+              <div>
+                <h3>Configured Cameras</h3>
+                <p>Manage your configured cameras.</p>
+              </div>
+              <div class="camera-table-tools">
+                <input id="cameraSearch" type="search" placeholder="Search cameras..." autocomplete="off" />
+                <select id="cameraTypeFilter" aria-label="Filter by camera type">
+                  <option value="">All Types</option>
+                  <option value="Day">Day</option>
+                  <option value="Thermal">Thermal</option>
+                  <option value="Other">Other</option>
                 </select>
-              </label>
-              <label>Host / IP <input id="camIp" placeholder="192.0.2.10 or camera.example.net" /></label>
-              <label>RTSP URL <input id="camRtsp" class="wide" placeholder="rtsp://user:pass@HOST:554/Streaming/Channels/102" /></label>
-              <label>ONVIF port <input id="camOnvif" type="number" value="80" min="1" max="65535" /></label>
-              <label>Username <input id="camUser" autocomplete="off" /></label>
-              <label>Password
-                <span class="password-row">
-                  <input id="camPass" type="password" autocomplete="new-password" />
-                  <button type="button" class="icon-action pw-toggle" data-password-toggle="camPass" aria-label="Show password"></button>
-                </span>
-              </label>
-              <label>PTZ mapping
-                <select id="camPtz"><option value="none">No PTZ</option><option value="ptz-1">PTZ 1</option><option value="ptz-2">PTZ 2</option></select>
-              </label>
-              <label>Camera group <input id="camGroup" placeholder="Border-A" /></label>
-              <label class="checkbox-row"><input id="camEnabled" type="checkbox" checked /> Enable camera</label>
+                <select id="cameraStatusFilter" aria-label="Filter by status">
+                  <option value="">All Status</option>
+                  <option value="online">Online</option>
+                  <option value="offline">Offline</option>
+                  <option value="disabled">Disabled</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </div>
             </div>
-            <p class="placeholder-hint">Host / IP accepts a LAN address or a remote hostname. Switching sites is a configuration change, not a code change.</p>
-            <p id="cameraTestResult" class="login-error"></p>
-            <div class="form-actions">
-              <button type="button" id="testCameraBtn" class="mini">Test Connection</button>
-              <button type="button" id="disableCameraBtn" class="mini danger hidden">Disable</button>
-              <button type="submit" class="primary" id="saveCameraBtn">Save Camera</button>
-              <button type="button" id="clearCameraForm" class="mini">Clear / Add New</button>
+            <div id="camerasEmpty" class="empty-state hidden">
+              <p>No cameras configured</p>
+              <p>Add a camera to begin live surveillance.</p>
+              <button type="button" class="primary mini" id="startOnboardingEmpty">+ Add Camera</button>
             </div>
-          </form>
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Name</th><th>Type</th><th>Connection</th><th>Host / IP</th><th>RTSP</th><th>PTZ</th><th>Status</th><th>Actions</th></tr></thead>
-              <tbody id="camerasList"></tbody>
-            </table>
-          </div>
+            <div class="camera-table-wrap">
+              <table class="camera-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Connection</th>
+                    <th>Host / IP</th>
+                    <th>PTZ</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="camerasList"></tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </section>
 
@@ -839,6 +1024,11 @@
     </div>
   </dialog>
 
-  <script type="module" src="/static/js/app.js"></script>
+  <script
+  type="module"
+  src="/api/v1.1/tracking/assets/tracking.js?v=20260922-lab"
+></script>
+
+  <script type="module" src="/static/js/app.js?v=20260922-recordings"></script>
 </body>
 </html>

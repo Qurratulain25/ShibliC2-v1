@@ -1,8 +1,8 @@
 import { api, Auth, showToast } from "./api.js";
 import { initAuth, bindLogout, connectionModeLabel, currentConnectionMode, switchConnectionMode } from "./auth.js";
 import { initRouter } from "./router.js";
-import { initRecordingsPage } from "./pages/recordings.js";
-import { initCamerasPage } from "./pages/cameras.js";
+import { initRecordingsPage } from "./pages/recordings.js?v=20260922-recordings";
+import { initCamerasPage } from "./pages/cameras.js?v=20260922-cameras-ref";
 import { initUsersPage } from "./pages/users.js";
 import { initSettingsPage } from "./pages/settings.js";
 import { initAuditPage } from "./pages/audit.js";
@@ -1740,6 +1740,7 @@ async function bootApp() {
   initAuditPage();
   initSettingsPage();
   bindDashboard();
+  bindLiveTrackingToggle();
   initKeyboard(handleKeyboardAction);
   updateClock();
   setInterval(updateClock, 1000);
@@ -1779,3 +1780,36 @@ main().catch((err) => {
   console.error(err);
   showToast("Startup error");
 });
+
+function setLiveTrackingUi(enabled) {
+  const button = document.getElementById("liveTrackingToggle");
+  const controls = document.getElementById("liveTrackingControls");
+  const state = document.getElementById("liveTrackingToggleState");
+  if (!button || !controls || !state) return;
+
+  button.setAttribute("aria-pressed", String(enabled));
+  button.setAttribute("aria-expanded", String(enabled));
+  state.textContent = enabled ? "ON" : "OFF";
+  controls.classList.toggle("hidden", !enabled);
+  controls.setAttribute("aria-hidden", String(!enabled));
+}
+
+function bindLiveTrackingToggle() {
+  const button = document.getElementById("liveTrackingToggle");
+  if (!button) return;
+
+  if (button.dataset.bound !== "true") {
+    button.dataset.bound = "true";
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const enabled = button.getAttribute("aria-pressed") !== "true";
+      setLiveTrackingUi(enabled);
+    });
+    window.addEventListener("shibli:page", (e) => {
+      if (e.detail === "dashboard") setLiveTrackingUi(false);
+    });
+  }
+
+  setLiveTrackingUi(false);
+}

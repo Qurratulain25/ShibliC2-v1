@@ -23,6 +23,7 @@ from ..core.database import (
     user_count,
 )
 
+JWT_SECRET = resolve_jwt_secret()
 JWT_EXPIRES_MIN = int(os.getenv("JWT_EXPIRES_MIN", "60"))
 security = HTTPBearer(auto_error=False)
 
@@ -43,12 +44,12 @@ def create_access_token(user: Dict[str, Any], connection_mode: str = "lan") -> s
         "connectionMode": normalize_session_mode(connection_mode),
         "exp": datetime.now(timezone.utc) + timedelta(minutes=JWT_EXPIRES_MIN),
     }
-    return jwt.encode(payload, resolve_jwt_secret(), algorithm="HS256")
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
 def decode_token(token: str) -> Dict[str, Any]:
     try:
-        return jwt.decode(token, resolve_jwt_secret(), algorithms=["HS256"])
+        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
@@ -189,7 +190,8 @@ def forgot_password(username: str, recovery_code: str, new_password: str) -> Non
 def startup_auth() -> None:
     from ..core.bootstrap_env import env_str
 
-    resolve_jwt_secret()
+    global JWT_SECRET
+    JWT_SECRET = resolve_jwt_secret()
 
     init_db()
     from ..core.settings_store import seed_defaults

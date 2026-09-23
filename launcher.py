@@ -23,21 +23,12 @@ def _prepare_environment() -> tuple[str, int]:
         root = os.path.dirname(os.path.abspath(__file__))
         if root not in sys.path:
             sys.path.insert(0, root)
-    from app.core.bootstrap_env import bootstrap_environment, env_str
-    from app.core.paths import project_root
-
-    layout = os.getenv("SHIBLI_INSTALL_LAYOUT", "").strip().lower()
-    env_name = os.getenv("SHIBLI_ENV", "").strip().lower()
-    fail_closed = (
-        getattr(sys, "frozen", False)
-        or layout == "system"
-        or env_name in ("production", "prod")
-    )
     try:
+        from app.core.bootstrap_env import bootstrap_environment, env_str
+        from app.core.paths import project_root
+
         bootstrap_environment(project_root())
     except Exception:
-        if fail_closed:
-            raise
         env_str = lambda name, default="": os.getenv(name, default).strip().strip("\r\n")  # noqa: E731
     host = env_str("VMS_HOST", "127.0.0.1")
     try:
@@ -126,111 +117,7 @@ def _icon_path():
     return None
 
 
-def run_backend(host: str, port: int) -> None:
-    """Top-level backend entry. Thread-safe; also safe if ever spawned as a child.
-
-    Frozen Windows uses a thread (not multiprocessing), so freeze_support is not required.
-    Logging is initialized here because uvicorn may reset handlers, and windowed
-    PyInstaller discards stderr.
-    """
-    import logging
-
-    import uvicorn
-
-    from app.core.bootstrap_env import bootstrap_environment
-    from app.core.logging_setup import configure_logging, persist_startup_exception
-    from app.core.paths import project_root
-
-    configure_logging()
-    try:
-        bootstrap_environment(project_root())
-        from app.main import app
-
-        configure_logging()
-        config = uvicorn.Config(
-            app,
-            host=host,
-            port=port,
-            log_level="warning",
-            log_config=None,
-        )
-        server = uvicorn.Server(config)
-        server.install_signal_handlers = lambda: None
-        server.run()
-    except BaseException as exc:
-        persist_startup_exception("Backend failed during startup", exc)
-        logging.getLogger("shibli.backend").error("Backend thread exiting before listen")
-        raise
-
-
-def _log_path_hint() -> str:
-    try:
-        from app.core.logging_setup import log_file_path
-
-        return str(log_file_path())
-    except Exception:
-        if sys.platform == "win32":
-            return r"C:\ProgramData\ShibliC2\logs\shibli-c2.log"
-        return "<persistent-root>/logs/shibli-c2.log"
-
-
-def _fatal(message: str, code: int = 1) -> None:
-    print(message, flush=True)
-    if sys.platform == "win32":
-        try:
-            import ctypes
-
-            ctypes.windll.user32.MessageBoxW(0, message, "SHIBLI C2", 0x10)
-        except Exception:
-            pass
-    raise SystemExit(code)
-
-
-def _wait_for_listen(host: str, port: int, timeout: float = 30.0) -> bool:
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        try:
-            with socket.create_connection((host, port), timeout=0.4):
-                return True
-        except OSError:
-            time.sleep(0.2)
-    return False
-
-
-def _ensure_backend_listening(host: str, port: int, url: str, server_thread: threading.Thread | None = None) -> None:
-    if _wait_for_listen(host, port):
-        return
-    from app.core.sidecars import stop_sidecars
-
-    stop_sidecars()
-    extra = ""
-    if server_thread is not None and not server_thread.is_alive():
-        extra = " The backend thread exited during startup."
-    _fatal(
-        f"ERROR: SHIBLI C2 backend did not start listening on {url}.{extra} "
-        f"See the log file: {_log_path_hint()}"
-    )
-
-
 def main() -> None:
-    try:
-        _main()
-    except SystemExit:
-        raise
-    except BaseException as exc:
-        try:
-            from app.core.logging_setup import persist_startup_exception
-
-            persist_startup_exception("SHIBLI C2 launcher failed", exc)
-        except Exception:
-            pass
-        _fatal(
-            f"ERROR: SHIBLI C2 failed to start ({type(exc).__name__}). "
-            f"See the log file: {_log_path_hint()}"
-        )
-
-
-def _main() -> None:
     host, port = _prepare_environment()
     from app.core.paths import go2rtc_config_path
     from app.core.sidecars import start_sidecars, stop_sidecars
@@ -239,10 +126,12 @@ def _main() -> None:
     in_use, pid = _port_in_use(host, port)
     if in_use:
         pid_msg = f" (PID {pid})" if pid else ""
-        _fatal(
-            f"ERROR: Port {port} is already in use{pid_msg}. "
-            "Stop the existing instance, then start SHIBLI C2 again."
-        )
+        print(f"ERROR: Port {port} is already in use{pid_msg}.")
+        print("Stop the existing instance, then start again:")
+        print("  ./scripts/stop.sh              (Ubuntu)")
+        print("  ./scripts/restart-shibli.sh    (Ubuntu — stop + reset admin + start)")
+        print("  .\\scripts\\restart-shibli.ps1   (Windows)")
+        raise SystemExit(1)
 
     display_host = "127.0.0.1" if host in ("0.0.0.0", "::") else host
     url = f"http://{display_host}:{port}"
@@ -251,8 +140,10 @@ def _main() -> None:
     no_browser = os.getenv("SHIBLI_NO_BROWSER", "").lower() in ("1", "true", "yes")
     want_desktop = os.getenv("SHIBLI_DESKTOP", "1" if frozen else "").lower() in ("1", "true", "yes")
 
+    import uvicorn
     from app.core.logging_setup import configure_logging
     from app.core.version import APP_VERSION_DISPLAY, PRODUCT_NAME
+    from app.main import app
 
     configure_logging()
     start_sidecars()
@@ -267,9 +158,17 @@ def _main() -> None:
     print(f"{PRODUCT_NAME} {APP_VERSION_DISPLAY} binding to {host}:{port} …")
 
     if want_desktop and not no_browser:
-        server_thread = threading.Thread(target=run_backend, args=(host, port), daemon=True, name="shibli-backend")
-        server_thread.start()
-        _ensure_backend_listening(display_host, port, url, server_thread)
+        def run_server() -> None:
+            uvicorn.run(app, host=host, port=port, log_level="warning")
+
+        threading.Thread(target=run_server, daemon=True).start()
+        deadline = time.time() + 20
+        while time.time() < deadline:
+            try:
+                with socket.create_connection((display_host, port), timeout=0.4):
+                    break
+            except OSError:
+                time.sleep(0.2)
         try:
             import inspect
             import webview
@@ -294,8 +193,9 @@ def _main() -> None:
             return
         except ImportError:
             if frozen:
+                print("ERROR: Desktop window runtime (pywebview) is missing from this build.", flush=True)
                 stop_sidecars()
-                _fatal("ERROR: Desktop window runtime (pywebview) is missing from this build.")
+                raise SystemExit(1)
             print("pywebview not installed — development browser fallback.", flush=True)
 
     if not no_browser and not frozen:
@@ -306,7 +206,7 @@ def _main() -> None:
         threading.Thread(target=open_browser, daemon=True).start()
 
     try:
-        run_backend(host, port)
+        uvicorn.run(app, host=host, port=port, log_level="warning")
     finally:
         stop_sidecars()
 

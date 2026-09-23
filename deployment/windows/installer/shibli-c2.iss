@@ -42,26 +42,26 @@ Source: "..\..\..\go2rtc.example.yaml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\runtime\windows\go2rtc.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\..\runtime\windows\ffmpeg.exe"; DestDir: "{app}\bin"; Flags: ignoreversion
 Source: "..\..\..\dist\ShibliControls\*"; DestDir: "{app}\controls"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\..\runtime\windows\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "..\..\runtime\windows\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "..\..\runtime\windows\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
+Source: "..\..\runtime\windows\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
 ; Persistent data is created under {commonappdata}\ShibliC2 — never overwrite it.
 
 [Dirs]
-Name: "{commonappdata}\ShibliC2\config"; Permissions: users-modify
-Name: "{commonappdata}\ShibliC2\data"; Permissions: users-modify
-Name: "{commonappdata}\ShibliC2\logs"; Permissions: users-modify
-Name: "{commonappdata}\ShibliC2\recordings"; Permissions: users-modify
-Name: "{commonappdata}\ShibliC2\snapshots"; Permissions: users-modify
-Name: "{commonappdata}\ShibliC2\exports"; Permissions: users-modify
-Name: "{commonappdata}\ShibliC2\backups"; Permissions: users-modify
+Name: "{commonappdata}\ShibliC2\config"
+Name: "{commonappdata}\ShibliC2\data"
+Name: "{commonappdata}\ShibliC2\logs"
+Name: "{commonappdata}\ShibliC2\recordings"
+Name: "{commonappdata}\ShibliC2\snapshots"
+Name: "{commonappdata}\ShibliC2\exports"
+Name: "{commonappdata}\ShibliC2\backups"
 
 [Icons]
 Name: "{group}\SHIBLI C2"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\shibli.ico"
 Name: "{autodesktop}\SHIBLI C2"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\shibli.ico"; Tasks: desktopicon
 
 [Run]
-Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing bundled Visual C++ runtime..."; Flags: waituntilterminated
-Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; StatusMsg: "Installing bundled desktop display runtime..."; Flags: waituntilterminated
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Installing bundled Visual C++ runtime..."; Flags: skipifdoesntexist waituntilterminated
+Filename: "{tmp}\MicrosoftEdgeWebView2RuntimeInstallerX64.exe"; Parameters: "/silent /install"; StatusMsg: "Installing bundled desktop display runtime..."; Flags: skipifdoesntexist waituntilterminated
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch SHIBLI C2"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
@@ -83,6 +83,6 @@ begin
     EnvFile := ExpandConstant('{commonappdata}\ShibliC2\data\.env');
     Example := ExpandConstant('{app}\.env.example');
     if (not FileExists(EnvFile)) and FileExists(Example) then
-      FileCopy(Example, EnvFile, True);
+      FileCopy(Example, EnvFile, False);
   end;
 end;

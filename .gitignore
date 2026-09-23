@@ -139,3 +139,20 @@ go2rtc.yaml
 
 # Local hardware-controls source location
 deployment/runtime/.controls-src-path
+
+# SHIBLI local/runtime artifacts
+data/
+bin/
+.pytest_cache/
+PATCHES_v1.1/
+*.before_*
+*.demo_backup*
+*.demo_backup
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+*.sqlite3
+*.pt
+*.pth
+.env

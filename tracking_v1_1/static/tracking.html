@@ -1,0 +1,138 @@
+<section id="page-tracking" class="page-view hidden">
+  <div class="tracking-lab">
+    <header class="tracking-lab-header">
+      <div class="tracking-lab-title">
+        <h2>Tracking Lab</h2>
+        <p>Test detection and multi-object tracking using recorded footage.</p>
+        <span class="tracking-lab-poc">Recorded-video POC</span>
+      </div>
+      <button type="button" id="trackingReset" class="tracking-lab-btn">Reset</button>
+    </header>
+
+    <div class="tracking-lab-workspace">
+      <section class="tracking-lab-main">
+        <div class="tracking-lab-panel">
+          <div class="tracking-lab-panel-head">
+            <h3>Input Video</h3>
+            <p>Select a recorded MP4, then start tracking.</p>
+          </div>
+          <div class="tracking-lab-stage" id="trackingVideoStage">
+            <video
+              id="trackingVideo"
+              class="tracking-lab-video"
+              playsinline
+              muted
+              preload="metadata"
+            ></video>
+            <canvas id="trackingOverlay" class="tracking-lab-overlay"></canvas>
+            <div id="trackingEmptyState" class="tracking-lab-empty">
+              <strong>No video selected</strong>
+              <span>Upload a recorded surveillance video to run the Tracking POC.</span>
+              <label class="tracking-lab-btn primary" for="trackingVideoInput">Browse Video</label>
+            </div>
+          </div>
+          <div class="tracking-lab-controls">
+            <label class="tracking-lab-btn" for="trackingVideoInput">
+              Browse Video
+              <input type="file" id="trackingVideoInput" accept="video/mp4,.mp4" />
+            </label>
+            <div class="tracking-lab-file">
+              <strong id="trackingFileName">No file selected</strong>
+              <span id="trackingFileInfo"></span>
+            </div>
+            <label class="tracking-lab-sensor" for="trackingSensor">
+              <span>Sensor</span>
+              <select id="trackingSensor" name="trackingSensor">
+                <option value="rgb" selected>RGB / Day</option>
+                <option value="thermal">Thermal</option>
+              </select>
+            </label>
+            <button type="button" id="trackingStart" class="tracking-lab-btn primary" disabled>
+              Start Tracking
+            </button>
+            <button type="button" id="trackingStop" class="tracking-lab-btn danger" disabled>
+              Stop
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="tracking-lab-side">
+        <div class="tracking-lab-panel">
+          <div class="tracking-lab-panel-head">
+            <h3>Status</h3>
+          </div>
+          <div id="trackingProcessPanel" class="tracking-lab-status">
+            <strong id="trackingProcessStatus">READY</strong>
+            <span id="trackingProcessPercent"></span>
+            <div class="tracking-lab-progress">
+              <div id="trackingProcessBarFill"></div>
+            </div>
+          </div>
+          <div id="trackingThreatCard" class="tracking-lab-threat is-clear">
+            <span class="tracking-lab-label">Detection</span>
+            <strong id="trackingThreatStatus">NO THREAT</strong>
+          </div>
+          <div class="tracking-lab-follow">
+            <span class="tracking-lab-label">Follow</span>
+            <button type="button" id="trackingFollowTarget" class="tracking-lab-btn" hidden>
+              Follow Target
+            </button>
+            <div id="trackingFollowActive" class="tracking-lab-follow-active" hidden>
+              <strong id="trackingFollowState">FOLLOWING TARGET</strong>
+              <button type="button" id="trackingStopFollow" class="tracking-lab-btn danger">
+                Stop Follow
+              </button>
+            </div>
+          </div>
+          <div class="tracking-lab-ptz">
+            <span class="tracking-lab-label">PTZ</span>
+            <strong id="trackingPtzCommand">STOPPED</strong>
+          </div>
+        </div>
+
+        <div class="tracking-lab-panel">
+          <div class="tracking-lab-panel-head">
+            <h3>Tracked Objects</h3>
+            <p>Live results for the current frame.</p>
+          </div>
+          <div class="tracking-lab-table-wrap">
+            <table class="tracking-lab-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Class</th>
+                  <th>Confidence</th>
+                  <th>State</th>
+                </tr>
+              </thead>
+              <tbody id="trackingResultsBody">
+                <tr><td colspan="4" class="tracking-lab-muted">No tracking results yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="tracking-lab-panel">
+          <div class="tracking-lab-panel-head">
+            <h3>Events</h3>
+          </div>
+          <div id="trackingAlertLog" class="tracking-lab-events">No events</div>
+        </div>
+      </aside>
+    </div>
+
+    <section class="tracking-lab-output tracking-lab-panel">
+      <div class="tracking-lab-panel-head">
+        <h3>Tracking Result</h3>
+        <p>Review overlay on the source video. Export creates an annotated file.</p>
+      </div>
+      <div class="tracking-lab-export-row">
+        <button type="button" id="trackingExportVideo" class="tracking-lab-btn" disabled>Export MP4</button>
+        <button type="button" id="trackingExportJson" class="tracking-lab-btn" disabled>Export JSON</button>
+        <button type="button" id="trackingExportCsv" class="tracking-lab-btn" disabled>Export CSV</button>
+      </div>
+      <p id="trackingMessage" class="tracking-lab-message" aria-live="polite"></p>
+    </section>
+  </div>
+</section>

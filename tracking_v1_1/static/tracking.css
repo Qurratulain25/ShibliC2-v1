@@ -1,0 +1,407 @@
+/* Tracking Lab only. Every rule is scoped to #page-tracking so Live View cannot inherit it. */
+#page-tracking {
+  padding: 0;
+  overflow: hidden;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #06090c;
+  color: #e8eef4;
+}
+
+#page-tracking .tracking-lab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  padding: 8px 12px 10px;
+  overflow: hidden;
+}
+
+#page-tracking .tracking-lab-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+#page-tracking .tracking-lab-title h2 {
+  margin: 0;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+#page-tracking .tracking-lab-title p {
+  margin: 2px 0 0;
+  color: #8b9aab;
+  font-size: 12px;
+}
+
+#page-tracking .tracking-lab-poc {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #3b9eff;
+}
+
+#page-tracking .tracking-lab-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(260px, 28%);
+  gap: 8px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+#page-tracking .tracking-lab-main,
+#page-tracking .tracking-lab-side {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#page-tracking .tracking-lab-panel {
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  border-radius: 8px;
+  background: #111820;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#page-tracking .tracking-lab-main > .tracking-lab-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#page-tracking .tracking-lab-panel-head {
+  padding: 8px 10px 6px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  flex-shrink: 0;
+}
+
+#page-tracking .tracking-lab-panel-head h3 {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#page-tracking .tracking-lab-panel-head p {
+  margin: 2px 0 0;
+  color: #8b9aab;
+  font-size: 11px;
+}
+
+#page-tracking .tracking-lab-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 280px;
+  overflow: hidden;
+  background: #05080b;
+}
+
+#page-tracking .tracking-lab-video,
+#page-tracking .tracking-lab-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#page-tracking .tracking-lab-video {
+  display: block;
+  object-fit: contain;
+  background: #05080b;
+}
+
+#page-tracking .tracking-lab-overlay {
+  pointer-events: none;
+}
+
+#page-tracking .tracking-lab-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: #8b9aab;
+  text-align: center;
+}
+
+#page-tracking .tracking-lab-empty.hidden {
+  display: none !important;
+}
+
+#page-tracking .tracking-lab-empty strong {
+  color: #e8eef4;
+  font-size: 16px;
+}
+
+#page-tracking .tracking-lab-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  flex-shrink: 0;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+#page-tracking .tracking-lab-file {
+  display: flex;
+  flex-direction: column;
+  min-width: 140px;
+  flex: 1 1 160px;
+}
+
+#page-tracking .tracking-lab-file strong {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#page-tracking .tracking-lab-file span {
+  font-size: 11px;
+  color: #8b9aab;
+}
+
+#page-tracking .tracking-lab-sensor {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 132px;
+  color: #8b9aab;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#page-tracking .tracking-lab-sensor select {
+  min-height: 30px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 6px;
+  background: #0a1016;
+  color: #e8eef4;
+}
+
+#page-tracking .tracking-lab-sensor select:focus {
+  outline: none;
+  border-color: rgba(59, 158, 255, 0.75);
+  box-shadow: 0 0 0 3px rgba(59, 158, 255, 0.1);
+}
+
+#page-tracking .tracking-lab-btn,
+#page-tracking label.tracking-lab-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: #0a1016;
+  color: #e8eef4;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+#page-tracking .tracking-lab-btn.primary,
+#page-tracking label.tracking-lab-btn.primary {
+  background: rgba(59, 158, 255, 0.15);
+  border-color: rgba(59, 158, 255, 0.55);
+  color: #d9ecff;
+}
+
+#page-tracking .tracking-lab-btn.primary:hover:not(:disabled) {
+  background: rgba(59, 158, 255, 0.24);
+  border-color: rgba(59, 158, 255, 0.8);
+}
+
+#page-tracking .tracking-lab-btn.danger {
+  background: rgba(255, 92, 92, 0.12);
+  border-color: rgba(255, 92, 92, 0.4);
+  color: #ffd0d0;
+}
+
+#page-tracking .tracking-lab-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+#page-tracking .tracking-lab-btn input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+#page-tracking .tracking-lab-side {
+  overflow: auto;
+}
+
+#page-tracking .tracking-lab-status {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 10px;
+  padding: 8px 10px;
+}
+
+#page-tracking .tracking-lab-status strong {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+#page-tracking .tracking-lab-status span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #3b9eff;
+}
+
+#page-tracking .tracking-lab-progress {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #0a1016;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+#page-tracking .tracking-lab-progress > div {
+  width: 0;
+  height: 100%;
+  background: #3b9eff;
+}
+
+#page-tracking .tracking-lab-label {
+  display: block;
+  color: #8b9aab;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+#page-tracking .tracking-lab-threat,
+#page-tracking .tracking-lab-follow,
+#page-tracking .tracking-lab-ptz {
+  padding: 8px 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+#page-tracking .tracking-lab-threat strong,
+#page-tracking .tracking-lab-ptz strong,
+#page-tracking .tracking-lab-follow-active strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+#page-tracking .tracking-lab-threat.is-clear strong {
+  color: #3dd68c;
+}
+
+#page-tracking .tracking-lab-threat.is-alert strong {
+  color: #ff5c5c;
+}
+
+#page-tracking .tracking-lab-follow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#page-tracking .tracking-lab-table-wrap {
+  overflow: auto;
+  max-height: 220px;
+}
+
+#page-tracking .tracking-lab-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+#page-tracking .tracking-lab-table th,
+#page-tracking .tracking-lab-table td {
+  padding: 5px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+#page-tracking .tracking-lab-table th {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #8b9aab;
+}
+
+#page-tracking .tracking-lab-muted {
+  color: #8b9aab;
+}
+
+#page-tracking .tracking-lab-events {
+  min-height: 40px;
+  max-height: 80px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  white-space: pre-wrap;
+  color: #8b9aab;
+}
+
+#page-tracking .tracking-lab-output {
+  flex-shrink: 0;
+}
+
+#page-tracking .tracking-lab-export-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+#page-tracking .tracking-lab-message {
+  min-height: 16px;
+  margin: 0;
+  padding: 0 10px 8px;
+  color: #8b9aab;
+  font-size: 12px;
+}
+
+@media (max-width: 1366px) {
+  #page-tracking .tracking-lab-workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 32%);
+  }
+}
+
+@media (max-width: 1100px) {
+  #page-tracking .tracking-lab {
+    overflow: auto;
+  }
+
+  #page-tracking .tracking-lab-workspace {
+    grid-template-columns: 1fr;
+    flex: 0 0 auto;
+  }
+
+  #page-tracking .tracking-lab-stage {
+    min-height: 240px;
+  }
+}

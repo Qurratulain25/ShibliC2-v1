@@ -43,6 +43,7 @@ from .routes.backend import router as backend_router
 from .routes.cameras_route import router as cameras_router
 from .routes.media_route import router as media_router
 from .routes.settings_route import recordings_router, router as settings_router
+from tracking_v1_1.routes import router as tracking_v1_1_router
 
 APP_VERSION = APP_VERSION_DISPLAY
 
@@ -167,6 +168,7 @@ app.include_router(cameras_router)
 app.include_router(settings_router)
 app.include_router(recordings_router)
 app.include_router(media_router)
+app.include_router(tracking_v1_1_router)
 app.mount("/static", StaticFiles(directory=static_dir()), name="static")
 
 

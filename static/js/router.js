@@ -1,6 +1,6 @@
 import { Auth, showToast } from "./api.js";
 
-const PAGES = ["dashboard", "recordings", "cameras", "users", "audit", "settings"];
+const PAGES = ["dashboard", "tracking", "recordings", "cameras", "users", "audit", "settings"];
 
 export function initRouter() {
   window.addEventListener("hashchange", () => navigate(location.hash.slice(1) || "dashboard"));

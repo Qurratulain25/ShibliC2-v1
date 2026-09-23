@@ -82,18 +82,10 @@ def persistent_root() -> Path:
         for root in candidates:
             if _dir_writable(root):
                 return root
-        fallback = _user_persistent_root()
+        fallback = Path.home() / ".local" / "share" / "ShibliC2"
         fallback.mkdir(parents=True, exist_ok=True)
         return fallback
     return project_root()
-
-
-def _user_persistent_root() -> Path:
-    """Per-user desktop runtime when the system persistent root is not writable."""
-    xdg = os.getenv("XDG_DATA_HOME", "").strip().strip("\r\n")
-    if xdg:
-        return Path(xdg) / "ShibliC2"
-    return Path.home() / ".local" / "share" / "ShibliC2"
 
 
 def _system_persistent() -> bool:
@@ -194,14 +186,13 @@ def env_path() -> Path:
     db_exists = db.exists() and db.stat().st_size > 0
     backup_exists = any(p.exists() and p.stat().st_size > 0 for p in backups)
     if db_exists or backup_exists:
-        raise RuntimeError(
+        logger.error(
             "data/.env is missing but an encrypted database or backup exists. "
-            "Restore the original data/.env. Refusing to create a new environment file."
+            "Not copying .env.example (that would introduce a new SHIBLI_DB_KEY). "
+            "Restore the original data/.env or run: python3 scripts/recover_runtime.py"
         )
-    templates = [project_root() / ".env.example"]
-    if install_layout() != "system":
-        templates.append(project_root() / ".env")
-    for template in templates:
+        return target
+    for template in (project_root() / ".env.example", project_root() / ".env"):
         if template.exists():
             shutil.copy2(template, target)
             break

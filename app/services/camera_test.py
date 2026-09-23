@@ -6,7 +6,7 @@ from typing import Any, Dict, Tuple
 from urllib.parse import urlparse
 
 import httpx
-
+__test__ = False
 
 def _host_from_rtsp(rtsp_url: str) -> str:
     try:
@@ -102,3 +102,5 @@ async def test_camera_connection(payload: Dict[str, Any]) -> Dict[str, Any]:
             "expected for some remote/NAT streams. Hardware control stays blocked until ONVIF answers."
         ),
     }
+
+test_camera_connection.__test__ = False

@@ -12,6 +12,13 @@ PHASE_MODULES: List[Dict[str, Any]] = [
         "icon": "grid",
     },
     {
+        "id": "tracking",
+        "label": "Tracking POC",
+        "phase": 1,
+        "enabled": True,
+        "icon": "radar",
+    },
+    {
         "id": "recordings",
         "label": "Recordings",
         "phase": 1,
